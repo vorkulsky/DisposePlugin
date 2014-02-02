@@ -54,6 +54,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AboutAction.cs" />
     <Compile Include="ReverseStringAction.cs" />
+    <Compile Include="src\CodeInspections\DisposeableClassProblemAnalyzer.cs" />
+    <Compile Include="src\CodeInspections\NotDisposableContainsDisposableField.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
