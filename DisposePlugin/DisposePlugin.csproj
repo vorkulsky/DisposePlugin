@@ -54,8 +54,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="AboutAction.cs" />
     <Compile Include="ReverseStringAction.cs" />
-    <Compile Include="src\CodeInspections\DisposeableClassProblemAnalyzer.cs" />
-    <Compile Include="src\CodeInspections\NotDisposableContainsDisposableField.cs" />
+    <Compile Include="src\CodeInspections\DisposableVariableProblemAnalyzer.cs" />
+    <Compile Include="src\CodeInspections\DisposableClassProblemAnalyzer.cs" />
+    <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />
+    <Compile Include="src\CodeInspections\Highlighting\NotDisposableContainsDisposableField.cs" />
+    <Compile Include="src\Util\DisposeUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

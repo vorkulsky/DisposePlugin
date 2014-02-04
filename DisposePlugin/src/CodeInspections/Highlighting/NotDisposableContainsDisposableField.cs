@@ -1,9 +1,9 @@
 ﻿using JetBrains.ReSharper.Daemon;
 
-namespace DisposePlugin.CodeInspections
+namespace DisposePlugin.CodeInspections.Highlighting
 {
     [StaticSeverityHighlighting(Severity.WARNING, "CSharpInfo")]
-    internal class NotDisposableContainsDisposableField : IHighlighting
+    public class NotDisposableContainsDisposableField : IHighlighting
     {
         protected readonly string Message;
 
