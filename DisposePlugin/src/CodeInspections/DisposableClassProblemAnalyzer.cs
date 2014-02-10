@@ -21,9 +21,9 @@ namespace DisposePlugin.CodeInspections
         {
             var psiModule = data.Process.PsiModule;
             var resolveContext = data.Process.SourceFile.ResolveContext;
-            _disposableInterface = DisposeUtil.GetDisposableInterface(psiModule, resolveContext);
-            if (_disposableInterface == null)
-                return;
+            var disposableInterface = DisposeUtil.GetDisposableInterface(psiModule, resolveContext);
+            if (disposableInterface != null) _disposableInterface = disposableInterface;
+            else return;
 
             var existingDispose = DisposeUtil.FindDispose(element);
             if (existingDispose != null)

@@ -19,11 +19,11 @@ namespace DisposePlugin.CodeInspections
         {
             var psiModule = data.Process.PsiModule;
             var resolveContext = data.Process.SourceFile.ResolveContext;
-            _disposableInterface = DisposeUtil.GetDisposableInterface(psiModule, resolveContext);
-            if (_disposableInterface == null)
-                return;
+            var disposableInterface = DisposeUtil.GetDisposableInterface(psiModule, resolveContext);
+            if (disposableInterface != null) _disposableInterface = disposableInterface;
+            else return;
 
-            if (!(VariableTypeImplementsDisposable(element) || VariableInitByTypeImplementsDisposable(element)))
+            if (IsWrappedInUsing(element) || !VariableTypeImplementsDisposable(element))
                 return;
 
             consumer.AddHighlighting(new LocalVariableNotDisposed(), element.GetNameDocumentRange(), element.GetContainingFile());
@@ -31,10 +31,21 @@ namespace DisposePlugin.CodeInspections
 
         private bool VariableTypeImplementsDisposable([NotNull] ILocalVariableDeclaration element)
         {
+            IDeclaredElement variableTypeDeclaredElement;
             var variableReferenceName = element.ScalarTypeName;
-            if (variableReferenceName == null)
-                return false;
-            var variableTypeDeclaredElement = variableReferenceName.Reference.Resolve().DeclaredElement;
+            if (variableReferenceName != null)
+            {
+                variableTypeDeclaredElement = variableReferenceName.Reference.Resolve().DeclaredElement;
+            }
+            else
+            {
+                var type = DisposeUtil.CalculateExplicitType(element);
+                var declaredType = type as IDeclaredType;
+                if (declaredType == null)
+                    return false;
+                variableTypeDeclaredElement = declaredType.GetTypeElement();
+            }
+
             if (variableTypeDeclaredElement == null)
                 return false;
 
@@ -42,23 +53,12 @@ namespace DisposePlugin.CodeInspections
             return implementsDisposableInterface;
         }
 
-        private bool VariableInitByTypeImplementsDisposable([NotNull] ILocalVariableDeclaration element)
+        private static bool IsWrappedInUsing([NotNull] ILocalVariableDeclaration localVariableDeclaration)
         {
-            var expressionInitializer = element.Initial as IExpressionInitializer;
-            if (expressionInitializer == null)
+            var multipleLocalVariableDeclaration = localVariableDeclaration.Parent as IMultipleLocalVariableDeclaration;
+            if (multipleLocalVariableDeclaration == null)
                 return false;
-            var expression = expressionInitializer.Value as IObjectCreationExpression;
-            if (expression == null)
-                return false;
-            var initializerTypeReference = expression.TypeReference;
-            if (initializerTypeReference == null)
-                return false;
-            var initializerTypeDeclaredElement = initializerTypeReference.Resolve().DeclaredElement;
-            if (initializerTypeDeclaredElement == null)
-                return false;
-
-            var implementsDisposableInterface = DisposeUtil.HasDisposable(initializerTypeDeclaredElement, _disposableInterface);
-            return implementsDisposableInterface;
+            return multipleLocalVariableDeclaration.Parent is IUsingStatement;
         }
     }
 }
