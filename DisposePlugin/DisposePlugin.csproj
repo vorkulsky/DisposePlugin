@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\CodeInspections\DisposableFunctionProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\DisposableVariableProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\DisposableClassProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />

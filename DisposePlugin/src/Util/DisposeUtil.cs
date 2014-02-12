@@ -76,5 +76,37 @@ namespace DisposePlugin.Util
                 return expressionInitializer.Value;
             return null;
         }
+
+        public static bool VariableTypeImplementsDisposable([NotNull] ILocalVariableDeclaration element, [NotNull] ITypeElement disposableInterface)
+        {
+            IDeclaredElement variableTypeDeclaredElement;
+            var variableReferenceName = element.ScalarTypeName;
+            if (variableReferenceName != null)
+            {
+                variableTypeDeclaredElement = variableReferenceName.Reference.Resolve().DeclaredElement;
+            }
+            else
+            {
+                var type = CalculateExplicitType(element);
+                var declaredType = type as IDeclaredType;
+                if (declaredType == null)
+                    return false;
+                variableTypeDeclaredElement = declaredType.GetTypeElement();
+            }
+
+            if (variableTypeDeclaredElement == null)
+                return false;
+
+            var implementsDisposableInterface = DisposeUtil.HasDisposable(variableTypeDeclaredElement, disposableInterface);
+            return implementsDisposableInterface;
+        }
+
+        public static bool IsWrappedInUsing([NotNull] ILocalVariableDeclaration localVariableDeclaration)
+        {
+            var multipleLocalVariableDeclaration = localVariableDeclaration.Parent as IMultipleLocalVariableDeclaration;
+            if (multipleLocalVariableDeclaration == null)
+                return false;
+            return multipleLocalVariableDeclaration.Parent is IUsingStatement;
+        }
     }
 }
