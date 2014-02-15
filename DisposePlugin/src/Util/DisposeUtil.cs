@@ -97,7 +97,7 @@ namespace DisposePlugin.Util
             if (variableTypeDeclaredElement == null)
                 return false;
 
-            var implementsDisposableInterface = DisposeUtil.HasDisposable(variableTypeDeclaredElement, disposableInterface);
+            var implementsDisposableInterface = HasDisposable(variableTypeDeclaredElement, disposableInterface);
             return implementsDisposableInterface;
         }
 
