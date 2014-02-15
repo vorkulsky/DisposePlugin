@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using DisposePlugin.CodeInspections.Highlighting;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
@@ -22,10 +23,12 @@ namespace DisposePlugin.src.CodeInspections
         [NotNull] private ITypeElement _disposableInterface;
         [NotNull] private CSharpControlFlowGraf _myControlFlowGraf;
         [NotNull] private IHighlightingConsumer _consumer;
+        private HashSet<int> _visited;
 
         protected override void Run(ICSharpFunctionDeclaration element, ElementProblemAnalyzerData data,
             IHighlightingConsumer consumer)
         {
+            _visited = new HashSet<int>();
             _consumer = consumer;
             var psiModule = data.Process.PsiModule;
             var resolveContext = data.Process.SourceFile.ResolveContext;
@@ -47,19 +50,19 @@ namespace DisposePlugin.src.CodeInspections
         }
         private void Go(IControlFlowElement cfe)
         {
-            foreach (IControlFlowRib rib in cfe.Entries)
+            if (_visited.Contains(cfe.Id))
+                return;
+            _visited.Add(cfe.Id);
+            ITreeNode tn = cfe.SourceElement;
+            var element = tn as ILocalVariableDeclaration;
+            if (element != null)
             {
-                ITreeNode tn = rib.GetSourceElement();
-                var element = tn as ILocalVariableDeclaration;
-                if (element != null)
+                if (!DisposeUtil.IsWrappedInUsing(element) &&
+                    DisposeUtil.VariableTypeImplementsDisposable(element, _disposableInterface))
                 {
-                    if (!DisposeUtil.IsWrappedInUsing(element) &&
-                        DisposeUtil.VariableTypeImplementsDisposable(element, _disposableInterface))
-                    {
-                        RunAnalysis(element.DeclaredElement);
-                        _consumer.AddHighlighting(new LocalVariableNotDisposed(), element.GetNameDocumentRange(),
-                            element.GetContainingFile());
-                    }
+                    RunAnalysis(element.DeclaredElement);
+                    _consumer.AddHighlighting(new LocalVariableNotDisposed(), element.GetNameDocumentRange(),
+                        element.GetContainingFile());
                 }
             }
             foreach (IControlFlowRib rib in cfe.Exits)
