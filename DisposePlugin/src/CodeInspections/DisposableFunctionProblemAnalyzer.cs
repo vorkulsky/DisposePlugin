@@ -111,8 +111,34 @@ namespace DisposePlugin.src.CodeInspections
             var usages = allReferences.Select(reference => reference.GetTreeNode()).ToList();
             foreach (var re in usages)
             {
-                var n = re.GetNavigationRange();
-                _consumer.AddHighlighting(new LocalVariableNotDisposed(), n, re.GetContainingFile());
+                _consumer.AddHighlighting(new LocalVariableNotDisposed(), re.GetNavigationRange(), re.GetContainingFile());
+                MatchingParameters(re);
+            }
+        }
+
+        private void MatchingParameters(ITreeNode re)
+        {
+            var qq = re.Parent;
+            if (qq == null)
+                return;
+            var q = qq.Parent as IInvocationExpression;
+            if (q == null)
+                return;
+            var z = q.InvocationExpressionReference;
+            var rr = z.CurrentResolveResult;
+            if (rr == null)
+                return;
+            var de = rr.DeclaredElement;
+            var e = z.Invocation.Arguments;
+            foreach (var j in e)
+            {
+                var mp = j.MatchingParameter;
+                if (mp == null)
+                    continue;
+                var el = mp.Element;
+                var dee = el as IDeclaredElement;
+                var decl = dee.GetDeclarations().First();
+                _consumer.AddHighlighting(new LocalVariableNotDisposed(), decl.GetNameDocumentRange(), decl.GetContainingFile());
             }
         }
     }
