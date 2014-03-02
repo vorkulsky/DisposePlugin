@@ -5,16 +5,26 @@ namespace DisposePlugin.CodeInspections.Highlighting
     [StaticSeverityHighlighting(Severity.WARNING, "CSharpInfo")]
     public class LocalVariableNotDisposed : IHighlighting
     {
-        private const string Message = "Local variable is not disposed";
+        private readonly string _message = "Local variable is not disposed";
+
+        public LocalVariableNotDisposed()
+        {
+            
+        }
+
+        public LocalVariableNotDisposed(string message)
+        {
+            _message = message;
+        }
 
         public string ToolTip
         {
-            get { return Message; }
+            get { return _message; }
         }
 
         public string ErrorStripeToolTip
         {
-            get { return Message; }
+            get { return _message; }
         }
 
         public int NavigationOffsetPatch
