@@ -26,9 +26,9 @@ namespace DisposePlugin.CodeInspections
             if (graf == null)
                 return;
 
-            var flowGrafInspector = new CSharpControlFlowGrafInspector(graf, ValueAnalysisMode.OPTIMISTIC);
+/*            var flowGrafInspector = new CSharpControlFlowGrafInspector(graf, ValueAnalysisMode.OPTIMISTIC);
             flowGrafInspector.Inspect();
-            var au = flowGrafInspector.AssignmentsUsage;
+            var au = flowGrafInspector.AssignmentsUsage;*/
             //FindInfoByExpression
             //FindVariableInfo
 
