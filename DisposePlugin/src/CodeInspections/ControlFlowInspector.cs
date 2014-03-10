@@ -26,9 +26,6 @@ namespace DisposePlugin.CodeInspections
 
         private readonly List<HighlightingInfo> _myHighlightings = new List<HighlightingInfo>();
 
-        private readonly Dictionary<string, IVariableDeclaration> _variableDeclarations =
-            new Dictionary<string, IVariableDeclaration>();
-
         private readonly ControlFlowElementDataStorage _elementDataStorage = new ControlFlowElementDataStorage();
 
         #endregion
@@ -114,29 +111,15 @@ namespace DisposePlugin.CodeInspections
             }
         }
 
-        public static void Analyze([NotNull] IControlFlowElement source, [NotNull] IControlFlowElement target,
-            [NotNull] ControlFlowElementData targetData)
-        {
-            var sourceElement1 = source.SourceElement;
-            if (sourceElement1 == null)
-                return;
-            var sourceElement2 = target.SourceElement;
-            if (sourceElement2 == null)
-                return;
-            for (var containingNode = sourceElement1.GetContainingNode<ILocalScope>(true);
-                containingNode != null && !containingNode.Contains(sourceElement2);
-                containingNode = containingNode.GetContainingNode<ILocalScope>(false))
-            {
-                var v = containingNode.LocalVariables;
-            }
-
-        }
-
         private void ProcessTreeNode([NotNull] ITreeNode treeNode, ControlFlowElementData data)
         {
             if (treeNode is ILocalVariableDeclaration)
             {
                 ProcessLocalVariableDeclaration(treeNode as ILocalVariableDeclaration, data);
+            }
+            else if (treeNode is IInvocationExpression)
+            {
+                ProcessInvocationExpression(treeNode as IInvocationExpression, data);
             }
         }
 
@@ -146,10 +129,35 @@ namespace DisposePlugin.CodeInspections
             if (!DisposeUtil.IsWrappedInUsing(variableDeclaration) &&
                 DisposeUtil.VariableTypeImplementsDisposable(variableDeclaration, _disposableInterface))
             {
-                RunAnalysis(variableDeclaration.DeclaredElement);
+                //RunAnalysis(variableDeclaration.DeclaredElement);
                 data.Status[variableDeclaration] = VariableDisposeStatus.NotDisposed;
-                _variableDeclarations[variableDeclaration.DeclaredName] = variableDeclaration;
             }
+        }
+
+        private static void ProcessInvocationExpression([NotNull] IInvocationExpression invocationExpression,
+            ControlFlowElementData data)
+        {
+            if (invocationExpression.Arguments.Count != 0)
+                return;
+            var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
+            if (invokedExpression == null)
+                return;
+            var name = invokedExpression.NameIdentifier.Name;
+            if (!name.Equals("Dispose"))
+                return;
+            var qualifierExpression = invokedExpression.QualifierExpression as IReferenceExpression;
+            if (qualifierExpression == null)
+                return;
+            var declaredElement = qualifierExpression.Reference.Resolve().DeclaredElement;
+            if (declaredElement == null)
+                return;
+            var declaration = declaredElement.GetDeclarations().FirstOrDefault();
+            if (declaration == null)
+                return;
+            var variableDeclaration = declaration as IVariableDeclaration;
+            if (variableDeclaration == null)
+                return;
+            data.Status[variableDeclaration] = VariableDisposeStatus.Disposed;
         }
 
         private void HighlightParameters(ICSharpFunctionDeclaration element, ElementProblemAnalyzerData data)
@@ -158,7 +166,7 @@ namespace DisposePlugin.CodeInspections
 
             foreach (var param in args)
             {
-                RunAnalysis(param);
+                //RunAnalysis(param);
 
                 var t = param.Type;
                 var st = t.GetScalarType();
