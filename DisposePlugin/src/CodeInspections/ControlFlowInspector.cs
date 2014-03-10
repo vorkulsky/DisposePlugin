@@ -58,7 +58,7 @@ namespace DisposePlugin.CodeInspections
 
         private void AddHighlightings()
         {
-            var variables = new HashSet<string>();
+            var variables = new HashSet<IVariableDeclaration>();
             _graf.ReachableExits.ForEach(exit =>
             {
                 var data = _elementDataStorage[exit.Source];
@@ -71,14 +71,10 @@ namespace DisposePlugin.CodeInspections
                     });
                 }
             });
-            variables.ForEach(name =>
+            variables.ForEach(variableDeclaration =>
             {
-                IVariableDeclaration variableDeclaration;
-                if (_variableDeclarations.TryGetValue(name, out variableDeclaration))
-                {
-                    _myHighlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
-                        new LocalVariableNotDisposed(name + " not disposed")));
-                }
+                _myHighlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
+                    new LocalVariableNotDisposed(variableDeclaration.DeclaredName + " not disposed")));
             });
         }
 
@@ -118,6 +114,24 @@ namespace DisposePlugin.CodeInspections
             }
         }
 
+        public static void Analyze([NotNull] IControlFlowElement source, [NotNull] IControlFlowElement target,
+            [NotNull] ControlFlowElementData targetData)
+        {
+            var sourceElement1 = source.SourceElement;
+            if (sourceElement1 == null)
+                return;
+            var sourceElement2 = target.SourceElement;
+            if (sourceElement2 == null)
+                return;
+            for (var containingNode = sourceElement1.GetContainingNode<ILocalScope>(true);
+                containingNode != null && !containingNode.Contains(sourceElement2);
+                containingNode = containingNode.GetContainingNode<ILocalScope>(false))
+            {
+                var v = containingNode.LocalVariables;
+            }
+
+        }
+
         private void ProcessTreeNode([NotNull] ITreeNode treeNode, ControlFlowElementData data)
         {
             if (treeNode is ILocalVariableDeclaration)
@@ -133,7 +147,7 @@ namespace DisposePlugin.CodeInspections
                 DisposeUtil.VariableTypeImplementsDisposable(variableDeclaration, _disposableInterface))
             {
                 RunAnalysis(variableDeclaration.DeclaredElement);
-                data.Status[variableDeclaration.DeclaredName] = VariableDisposeStatus.NotDisposed;
+                data.Status[variableDeclaration] = VariableDisposeStatus.NotDisposed;
                 _variableDeclarations[variableDeclaration.DeclaredName] = variableDeclaration;
             }
         }

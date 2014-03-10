@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using JetBrains.Annotations;
 using JetBrains.ReSharper.Psi.ControlFlow;
+using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.Util;
 
 namespace DisposePlugin.CodeInspections
@@ -18,10 +19,10 @@ namespace DisposePlugin.CodeInspections
 
     public class ControlFlowElementData
     {
-        private readonly Dictionary<String, VariableDisposeStatus> _status = new Dictionary<String, VariableDisposeStatus>();
+        private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
         private bool _visited; // = false
 
-        public Dictionary<String, VariableDisposeStatus> Status
+        public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
         {
             get { return _status; }
         }
@@ -30,7 +31,7 @@ namespace DisposePlugin.CodeInspections
 
         // Добавляет или возвращают данные о статусе по имени переменной
         // Если элемент с нужным индексом не сущ., возвращается null
-        public VariableDisposeStatus? this[String index]
+        public VariableDisposeStatus? this[IVariableDeclaration index]
         {
             set
             {
@@ -134,7 +135,7 @@ namespace DisposePlugin.CodeInspections
         }
 
         private JetHashSet<VariableDisposeStatus> GetPreviousElemsStatusSet(IEnumerable<ControlFlowElementData> previousElems,
-            KeyValuePair<string, VariableDisposeStatus> kvp)
+            KeyValuePair<IVariableDeclaration, VariableDisposeStatus> kvp)
         {
             return previousElems.Select(previousElementData => previousElementData[kvp.Key] ?? VariableDisposeStatus.Unknown).ToHashSet();
         }

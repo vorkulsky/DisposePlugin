@@ -1,13 +1,13 @@
-﻿using DisposePlugin.CodeInspections;
-using DisposePlugin.CodeInspections.Highlighting;
+﻿using DisposePlugin.CodeInspections.Highlighting;
 using DisposePlugin.Util;
 using JetBrains.ReSharper.Daemon.Stages;
 using JetBrains.ReSharper.Daemon.Stages.Dispatcher;
+using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.ControlFlow.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 
-namespace DisposePlugin.src.CodeInspections
+namespace DisposePlugin.CodeInspections
 {
     [ElementProblemAnalyzer(new[] {typeof (ICSharpFunctionDeclaration)},
         HighlightingTypes = new[] {typeof (LocalVariableNotDisposed)})]
@@ -25,6 +25,12 @@ namespace DisposePlugin.src.CodeInspections
             var graf = CSharpControlFlowBuilder.Build(element) as CSharpControlFlowGraf;
             if (graf == null)
                 return;
+
+            var flowGrafInspector = new CSharpControlFlowGrafInspector(graf, ValueAnalysisMode.OPTIMISTIC);
+            flowGrafInspector.Inspect();
+            var au = flowGrafInspector.AssignmentsUsage;
+            //FindInfoByExpression
+            //FindVariableInfo
 
             var grafInspector = new ControlFlowInspector(graf, disposableInterface);
             grafInspector.Highlightings.ForEach(consumer.ConsumeHighlighting);
