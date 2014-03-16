@@ -58,6 +58,7 @@
     <Compile Include="src\CodeInspections\DisposableClassProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />
     <Compile Include="src\CodeInspections\Highlighting\NotDisposableContainsDisposableField.cs" />
+    <Compile Include="src\CodeInspections\TreeNodeHandler.cs" />
     <Compile Include="src\Util\DisposeUtil.cs" />
   </ItemGroup>
   <ItemGroup>
