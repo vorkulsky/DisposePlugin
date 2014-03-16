@@ -3,14 +3,12 @@ using System.Linq;
 using DisposePlugin.CodeInspections;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
-using JetBrains.ReSharper.Daemon.UsageChecking;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.ControlFlow.CSharp;
 using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Resolve;
-using JetBrains.ReSharper.Psi.Services.CSharp.StructuralSearch;
 using JetBrains.ReSharper.Psi.Tree;
 
 namespace DisposePlugin.src.CodeInspections
@@ -44,7 +42,7 @@ namespace DisposePlugin.src.CodeInspections
                 DisposeUtil.VariableTypeImplementsDisposable(variableDeclaration, _disposableInterface))
             {
                 //RunAnalysis(variableDeclaration.DeclaredElement);
-                data.Status[variableDeclaration] = VariableDisposeStatus.NotDisposed;
+                data[variableDeclaration] = VariableDisposeStatus.NotDisposed;
             }
         }
 
@@ -54,7 +52,7 @@ namespace DisposePlugin.src.CodeInspections
             var variableDeclaration = GetQualifierVariableDeclaration(invocationExpression, data);
             if (variableDeclaration != null && IsSimpleDisposeInvocation(invocationExpression))
             {
-                data.Status[variableDeclaration] = VariableDisposeStatus.Disposed;
+                data[variableDeclaration] = VariableDisposeStatus.Disposed;
                 return;
             }
             ProcessSimpleInvocation(invocationExpression, variableDeclaration, data);
@@ -82,7 +80,7 @@ namespace DisposePlugin.src.CodeInspections
                 var argumentVariableDeclaration = GetVariableDeclarationByReference(reference);
                 if (argumentVariableDeclaration == null)
                     continue;
-                if (data.Status[argumentVariableDeclaration] == null)
+                if (data[argumentVariableDeclaration] == null)
                     continue;
                 var matchingArgument = GetMatchingArgument(argument);
                 var matchingVarDecl = matchingArgument as IVariableDeclaration;
@@ -134,7 +132,7 @@ namespace DisposePlugin.src.CodeInspections
             var variableDeclaration = GetVariableDeclarationByReference(referenceExpression.Reference);
             if (variableDeclaration == null)
                 return null;
-            return data.Status[variableDeclaration] != null ? variableDeclaration : null;
+            return data[variableDeclaration] != null ? variableDeclaration : null;
         }
 
         [CanBeNull]
