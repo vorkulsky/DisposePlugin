@@ -17,10 +17,12 @@ namespace DisposePlugin.src.CodeInspections
     {
         [NotNull]
         private readonly ITypeElement _disposableInterface;
+        private readonly int _level;
 
-        public TreeNodeHandler([NotNull] ITypeElement disposableInterface)
+        public TreeNodeHandler(int level, [NotNull] ITypeElement disposableInterface)
         {
             _disposableInterface = disposableInterface;
+            _level = level;
         }
 
         public void ProcessTreeNode([NotNull] ITreeNode treeNode, ControlFlowElementData data)
@@ -41,7 +43,6 @@ namespace DisposePlugin.src.CodeInspections
             if (!DisposeUtil.IsWrappedInUsing(variableDeclaration) &&
                 DisposeUtil.VariableTypeImplementsDisposable(variableDeclaration, _disposableInterface))
             {
-                //RunAnalysis(variableDeclaration.DeclaredElement);
                 data[variableDeclaration] = VariableDisposeStatus.NotDisposed;
             }
         }
@@ -92,6 +93,9 @@ namespace DisposePlugin.src.CodeInspections
             if (!connections.Any() && qualifierVariableDeclaration == null)
                 return;
 
+            if (_level <= 0)
+                return;
+
             var invokedDeclaredElement = invocationExpression.InvocationExpressionReference.Resolve().DeclaredElement;
             if (invokedDeclaredElement == null)
                 return;
@@ -106,7 +110,12 @@ namespace DisposePlugin.src.CodeInspections
             if (graf == null)
                 return;
 
-            var grafInspector = new ControlFlowInspector(graf, _disposableInterface);
+            var inspector = new SimpleInspector(connections, qualifierVariableDeclaration, _level-1, graf, _disposableInterface);
+            foreach (var kvp in inspector.DisposeStatus)
+            {
+                if (kvp.Value == VariableDisposeStatus.Disposed)
+                    data[connections[kvp.Key]] = VariableDisposeStatus.Disposed;
+            }
         }
 
         [CanBeNull]
@@ -117,9 +126,9 @@ namespace DisposePlugin.src.CodeInspections
             if (invokedExpression == null)
                 return null;
             var qualifierExpression = invokedExpression.QualifierExpression;
-            if (qualifierExpression == null)
-                return null;
-            return GetVariableDeclarationForExpression(invokedExpression.QualifierExpression, data);
+            if (qualifierExpression == null || qualifierExpression is IThisExpression)
+                return null; //TODO: this
+            return GetVariableDeclarationForExpression(qualifierExpression, data);
         }
 
         [CanBeNull]

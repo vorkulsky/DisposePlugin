@@ -2,7 +2,6 @@
 using DisposePlugin.Util;
 using JetBrains.ReSharper.Daemon.Stages;
 using JetBrains.ReSharper.Daemon.Stages.Dispatcher;
-using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.ControlFlow.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
@@ -32,7 +31,9 @@ namespace DisposePlugin.CodeInspections
             //FindInfoByExpression
             //FindVariableInfo
 
-            var grafInspector = new ControlFlowInspector(graf, disposableInterface);
+            const int maxLevel = 2;
+
+            var grafInspector = new ControlFlowInspector(graf, maxLevel, disposableInterface);
             grafInspector.Highlightings.ForEach(consumer.ConsumeHighlighting);
         }
     }

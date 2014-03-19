@@ -1,18 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using DisposePlugin.CodeInspections.Highlighting;
 using DisposePlugin.src.CodeInspections;
-using DisposePlugin.Util;
 using JetBrains.Annotations;
 using JetBrains.ReSharper.Daemon;
-using JetBrains.ReSharper.Daemon.Stages.Dispatcher;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
-using JetBrains.ReSharper.Psi.Resolve;
-using JetBrains.ReSharper.Psi.Search;
 using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.Util;
 
@@ -29,6 +24,8 @@ namespace DisposePlugin.CodeInspections
 
         private readonly ControlFlowElementDataStorage _elementDataStorage = new ControlFlowElementDataStorage();
 
+        private readonly int _maxLevel;
+
         #endregion
 
         #region Attributes
@@ -40,9 +37,10 @@ namespace DisposePlugin.CodeInspections
 
         #endregion
 
-        public ControlFlowInspector([NotNull] CSharpControlFlowGraf graf, [NotNull] ITypeElement disposableInterface)
+        public ControlFlowInspector([NotNull] CSharpControlFlowGraf graf, int maxLevel, [NotNull] ITypeElement disposableInterface)
         {
             _graf = graf;
+            _maxLevel = maxLevel;
             _disposableInterface = disposableInterface;
             Inspect();
         }
@@ -96,7 +94,7 @@ namespace DisposePlugin.CodeInspections
                     var node = current.SourceElement;
                     if (node != null)
                     {
-                        var handler = new TreeNodeHandler(_disposableInterface);
+                        var handler = new TreeNodeHandler(_maxLevel, _disposableInterface);
                         handler.ProcessTreeNode(node, currentData);
                     }
                     newVisited = true;
@@ -113,14 +111,12 @@ namespace DisposePlugin.CodeInspections
             }
         }
 
-        private void HighlightParameters(ICSharpFunctionDeclaration element, ElementProblemAnalyzerData data)
+/*        private void HighlightParameters(ICSharpFunctionDeclaration element, ElementProblemAnalyzerData data)
         {
             var args = element.DeclaredElement.Parameters;
 
             foreach (var param in args)
             {
-                //RunAnalysis(param);
-
                 var t = param.Type;
                 var st = t.GetScalarType();
                 if (st == null)
@@ -136,21 +132,6 @@ namespace DisposePlugin.CodeInspections
                     _myHighlightings.Add(new HighlightingInfo(d.GetNameDocumentRange(), new LocalVariableNotDisposed()));
                 }
             }
-        }
-
-        private void RunAnalysis(ITypeOwner myVariable)
-        {
-            IReference[] allReferences = myVariable.GetPsiServices().Finder.FindAllReferences(myVariable);
-            IInitializerOwnerDeclaration ownerDeclaration =
-                myVariable.GetDeclarations().OfType<IInitializerOwnerDeclaration>().FirstOrDefault();
-            ITreeNode InitializerElement;
-            if (ownerDeclaration != null)
-                InitializerElement = ownerDeclaration.Initializer;
-            var usages = allReferences.Select(reference => reference.GetTreeNode()).ToList();
-            foreach (var re in usages)
-            {
-                _myHighlightings.Add(new HighlightingInfo(re.GetNavigationRange(), new LocalVariableNotDisposed()));
-            }
-        }
+        }*/
     }
 }
