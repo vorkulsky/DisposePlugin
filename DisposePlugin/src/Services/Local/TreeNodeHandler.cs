@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using DisposePlugin.CodeInspections;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
 using JetBrains.ReSharper.Psi;
@@ -11,18 +10,18 @@ using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Resolve;
 using JetBrains.ReSharper.Psi.Tree;
 
-namespace DisposePlugin.src.CodeInspections
+namespace DisposePlugin.Services.Local
 {
-    public class TreeNodeHandler
+    public class TreeNodeHandler : ITreeNodeHandler
     {
         [NotNull]
         private readonly ITypeElement _disposableInterface;
-        private readonly int _level;
+        private readonly int _maxLevel;
 
-        public TreeNodeHandler(int level, [NotNull] ITypeElement disposableInterface)
+        public TreeNodeHandler(int maxLevel, [NotNull] ITypeElement disposableInterface)
         {
             _disposableInterface = disposableInterface;
-            _level = level;
+            _maxLevel = maxLevel;
         }
 
         public void ProcessTreeNode([NotNull] ITreeNode treeNode, ControlFlowElementData data)
@@ -59,6 +58,7 @@ namespace DisposePlugin.src.CodeInspections
             ProcessSimpleInvocation(invocationExpression, variableDeclaration, data);
         }
 
+        //TODO
         private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
             [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data)
         {
@@ -93,7 +93,7 @@ namespace DisposePlugin.src.CodeInspections
             if (!connections.Any() && qualifierVariableDeclaration == null)
                 return;
 
-            if (_level <= 0)
+            if (_maxLevel <= 0)
                 return;
 
             var invokedDeclaredElement = invocationExpression.InvocationExpressionReference.Resolve().DeclaredElement;
@@ -109,13 +109,6 @@ namespace DisposePlugin.src.CodeInspections
             var graf = CSharpControlFlowBuilder.Build(invokedFunctionDeclaration) as CSharpControlFlowGraf;
             if (graf == null)
                 return;
-
-            var inspector = new SimpleInspector(connections, qualifierVariableDeclaration, _level-1, graf, _disposableInterface);
-            foreach (var kvp in inspector.DisposeStatus)
-            {
-                if (kvp.Value == VariableDisposeStatus.Disposed)
-                    data[connections[kvp.Key]] = VariableDisposeStatus.Disposed;
-            }
         }
 
         [CanBeNull]

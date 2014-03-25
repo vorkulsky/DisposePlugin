@@ -56,19 +56,29 @@
     <Compile Include="src\Cache\DisposeCacheBuilder.cs" />
     <Compile Include="src\Cache\DisposeCacheSerializer.cs" />
     <Compile Include="src\Cache\DisposeMethodStatus.cs" />
-    <Compile Include="src\CodeInspections\ControlFlowElementDataStorage.cs" />
-    <Compile Include="src\CodeInspections\ControlFlowInspector.cs" />
+    <Compile Include="src\Services\ControlFlowElementData.cs" />
+    <Compile Include="src\Services\ControlFlowInspector.cs" />
     <Compile Include="src\CodeInspections\DisposableFunctionProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\DisposableClassProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />
     <Compile Include="src\CodeInspections\Highlighting\NotDisposableContainsDisposableField.cs" />
-    <Compile Include="src\CodeInspections\SimpleInspector.cs" />
-    <Compile Include="src\CodeInspections\TreeNodeHandler.cs" />
+    <Compile Include="src\Services\ControlFlowElementDataStorage.cs" />
+    <Compile Include="src\Services\Invoking\ControlFlowElementDataStorage.cs" />
+    <Compile Include="src\Services\Invoking\ControlFlowInspector.cs" />
+    <Compile Include="src\Services\Invoking\TreeNodeHandler.cs" />
+    <Compile Include="src\Services\Invoking\TreeNodeHandlerFactory.cs" />
+    <Compile Include="src\Services\ITreeNodeHandler.cs" />
+    <Compile Include="src\Services\Local\ControlFlowElementDataStorage.cs" />
+    <Compile Include="src\Services\Local\ControlFlowInspector.cs" />
+    <Compile Include="src\Services\Local\TreeNodeHandler.cs" />
+    <Compile Include="src\Services\Local\TreeNodeHandlerFactory.cs" />
+    <Compile Include="src\Services\ITreeNodeHandlerFactory.cs" />
     <Compile Include="src\Util\DisposeUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="$(ReSharperSdkTools)\MSBuild\JetBrains.Build.Platform.ThemedIconsConverter.Targets" Condition="Exists('$(ReSharperSdkTools)\MSBuild\JetBrains.Build.Platform.ThemedIconsConverter.Targets')" />

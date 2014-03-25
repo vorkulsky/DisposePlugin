@@ -1,4 +1,5 @@
 ﻿using DisposePlugin.CodeInspections.Highlighting;
+using DisposePlugin.Services.Local;
 using DisposePlugin.Util;
 using JetBrains.ReSharper.Daemon.Stages;
 using JetBrains.ReSharper.Daemon.Stages.Dispatcher;
@@ -33,8 +34,9 @@ namespace DisposePlugin.CodeInspections
 
             const int maxLevel = 2;
 
-            var grafInspector = new ControlFlowInspector(graf, maxLevel, disposableInterface);
-            grafInspector.Highlightings.ForEach(consumer.ConsumeHighlighting);
+            var grafInspector = new ControlFlowInspector(element, graf, maxLevel, disposableInterface);
+            var highlightings = grafInspector.Inspect();
+            highlightings.ForEach(consumer.ConsumeHighlighting);
         }
     }
 }   

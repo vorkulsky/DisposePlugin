@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using DisposePlugin.CodeInspections;
+using DisposePlugin.Services;
 using JetBrains.ReSharper.Psi;
 
 namespace DisposePlugin.Cache
