@@ -15,8 +15,6 @@ namespace DisposePlugin.Services
         protected readonly CSharpControlFlowGraf Graf;
         [NotNull]
         protected readonly ICSharpFunctionDeclaration FunctionDeclaration;
-        [NotNull]
-        protected readonly ITypeElement DisposableInterface;
 
         protected readonly ControlFlowElementDataStorage ElementDataStorage;
         protected readonly ITreeNodeHandlerFactory NodeHandlerFactory;
@@ -24,12 +22,11 @@ namespace DisposePlugin.Services
         #endregion
 
         protected ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
-            [NotNull] CSharpControlFlowGraf graf, [NotNull] ITypeElement disposableInterface,
-            ITreeNodeHandlerFactory nodeHandlerFactory, ControlFlowElementDataStorage elementDataStorage)
+            [NotNull] CSharpControlFlowGraf graf, ITreeNodeHandlerFactory nodeHandlerFactory,
+            ControlFlowElementDataStorage elementDataStorage)
         {
             FunctionDeclaration = functionDeclaration;
             Graf = graf;
-            DisposableInterface = disposableInterface;
             NodeHandlerFactory = nodeHandlerFactory;
             ElementDataStorage = elementDataStorage;
         }
@@ -54,7 +51,7 @@ namespace DisposePlugin.Services
                     var node = current.SourceElement;
                     if (node != null)
                     {
-                        var handler = NodeHandlerFactory.GetNewTreeNodeHandler(DisposableInterface);
+                        var handler = NodeHandlerFactory.GetNewTreeNodeHandler();
                         handler.ProcessTreeNode(node, currentData);
                     }
                     newVisited = true;

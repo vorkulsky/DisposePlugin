@@ -18,27 +18,27 @@ namespace DisposePlugin.Cache
     public class DisposeCache : ICache
     {
         private const int VERSION = 1;
-        private readonly JetHashSet<IPsiSourceFile> myDirtyFiles = new JetHashSet<IPsiSourceFile>();
-        private readonly OneToListMap<IPsiSourceFile, DisposeMethodStatus> mySourceFileToDisposeStatus
+        private readonly JetHashSet<IPsiSourceFile> _dirtyFiles = new JetHashSet<IPsiSourceFile>();
+        private readonly OneToListMap<IPsiSourceFile, DisposeMethodStatus> _sourceFileToDisposeStatus
             = new OneToListMap<IPsiSourceFile, DisposeMethodStatus>();
-        private readonly IPsiConfiguration myPsiConfiguration;
-        private readonly IShellLocks myShellLocks;
-        private readonly IPersistentIndexManager myPersistentIdIndex;
-        private DisposePersistentCache<DisposeCacheData> myPersistentCache;
+        private readonly IPsiConfiguration _psiConfiguration;
+        private readonly IShellLocks _shellLocks;
+        private readonly IPersistentIndexManager _persistentIdIndex;
+        private DisposePersistentCache<DisposeCacheData> _persistentCache;
 
         public DisposeCache(Lifetime lifetime, IShellLocks shellLocks,
             IPsiConfiguration psiConfiguration, IPersistentIndexManager persistentIdIndex)
         {
-            myPsiConfiguration = psiConfiguration;
-            myPersistentIdIndex = persistentIdIndex;
-            myShellLocks = shellLocks;
+            _psiConfiguration = psiConfiguration;
+            _persistentIdIndex = persistentIdIndex;
+            _shellLocks = shellLocks;
         }
 
         public void MarkAsDirty(IPsiSourceFile sourceFile)
         {
             if (Accepts(sourceFile))
             {
-                myDirtyFiles.Add(sourceFile);
+                _dirtyFiles.Add(sourceFile);
             }
         }
 
@@ -49,16 +49,16 @@ namespace DisposePlugin.Cache
                 return null;
             }
 
-            Assertion.Assert(myPersistentCache == null, "myPersistentCache == null");
+            Assertion.Assert(_persistentCache == null, "_persistentCache == null");
 
             using (ReadLockCookie.Create())
             {
-                myPersistentCache = new DisposePersistentCache<DisposeCacheData>(myShellLocks, VERSION, "DisposeCache", myPsiConfiguration);
+                _persistentCache = new DisposePersistentCache<DisposeCacheData>(_shellLocks, VERSION, "DisposeCache", _psiConfiguration);
             }
 
             var data = new Dictionary<IPsiSourceFile, DisposeCacheData>();
 
-            if (myPersistentCache.Load(progress, myPersistentIdIndex,
+            if (_persistentCache.Load(progress, _persistentIdIndex,
                 (file, reader) =>
                 {
                     using (ReadLockCookie.Create())
@@ -83,7 +83,7 @@ namespace DisposePlugin.Cache
             var parts = (Dictionary<IPsiSourceFile, DisposeCacheData>)data;
             foreach (var pair in parts)
             {
-                if (pair.Key.IsValid() && !myDirtyFiles.Contains(pair.Key))
+                if (pair.Key.IsValid() && !_dirtyFiles.Contains(pair.Key))
                 {
                     ((ICache)this).Merge(pair.Key, pair.Value);
                 }
@@ -95,21 +95,21 @@ namespace DisposePlugin.Cache
             if (!enablePersistence)
                 return;
 
-            Assertion.Assert(myPersistentCache != null, "myPersistentCache != null");
-            myPersistentCache.Save(progress, myPersistentIdIndex, (writer, file, data) =>
+            Assertion.Assert(_persistentCache != null, "_persistentCache != null");
+            _persistentCache.Save(progress, _persistentIdIndex, (writer, file, data) =>
             DisposeCacheSerializer.Write(data, writer));
-            myPersistentCache.Dispose();
-            myPersistentCache = null;
+            _persistentCache.Dispose();
+            _persistentCache = null;
         }
 
         public bool UpToDate(IPsiSourceFile sourceFile)
         {
-            myShellLocks.AssertReadAccessAllowed();
+            _shellLocks.AssertReadAccessAllowed();
 
             if (!Accepts(sourceFile))
                 return true;
 
-            return !myDirtyFiles.Contains(sourceFile) && mySourceFileToDisposeStatus.ContainsKey(sourceFile);
+            return !_dirtyFiles.Contains(sourceFile) && _sourceFileToDisposeStatus.ContainsKey(sourceFile);
         }
 
         public object Build(IPsiSourceFile sourceFile, bool isStartup)
@@ -119,50 +119,50 @@ namespace DisposePlugin.Cache
 
         public void Merge(IPsiSourceFile sourceFile, object builtPart)
         {
-            myShellLocks.AssertWriteAccessAllowed();
+            _shellLocks.AssertWriteAccessAllowed();
 
-            mySourceFileToDisposeStatus.RemoveKey(sourceFile);
+            _sourceFileToDisposeStatus.RemoveKey(sourceFile);
 
             var data = builtPart as IList<DisposeMethodStatus>;
             if (data != null)
-                mySourceFileToDisposeStatus.AddValueRange(sourceFile, data);
+                _sourceFileToDisposeStatus.AddValueRange(sourceFile, data);
 
-            myDirtyFiles.Remove(sourceFile);
+            _dirtyFiles.Remove(sourceFile);
         }
 
         public void Drop(IPsiSourceFile sourceFile)
         {
-            myShellLocks.AssertWriteAccessAllowed();
+            _shellLocks.AssertWriteAccessAllowed();
 
-            mySourceFileToDisposeStatus.RemoveKey(sourceFile);
+            _sourceFileToDisposeStatus.RemoveKey(sourceFile);
 
-            myDirtyFiles.Add(sourceFile);
+            _dirtyFiles.Add(sourceFile);
         }
 
         public void OnPsiChange(ITreeNode elementContainingChanges, PsiChangedElementType type)
         {
             if (elementContainingChanges == null)
                 return;
-            myShellLocks.AssertWriteAccessAllowed();
+            _shellLocks.AssertWriteAccessAllowed();
             var projectFile = elementContainingChanges.GetSourceFile();
             if (projectFile != null && Accepts(projectFile))
-                myDirtyFiles.Add(projectFile);
+                _dirtyFiles.Add(projectFile);
         }
 
         public void OnDocumentChange(IPsiSourceFile sourceFile, ProjectFileDocumentCopyChange change)
         {
-            myShellLocks.AssertWriteAccessAllowed();
+            _shellLocks.AssertWriteAccessAllowed();
             if (Accepts(sourceFile))
-                myDirtyFiles.Add(sourceFile);
+                _dirtyFiles.Add(sourceFile);
         }
 
         public void SyncUpdate(bool underTransaction)
         {
-            myShellLocks.AssertReadAccessAllowed();
+            _shellLocks.AssertReadAccessAllowed();
 
-            if (myDirtyFiles.Count > 0)
+            if (_dirtyFiles.Count > 0)
             {
-                foreach (IPsiSourceFile projectFile in new List<IPsiSourceFile>(myDirtyFiles))
+                foreach (IPsiSourceFile projectFile in new List<IPsiSourceFile>(_dirtyFiles))
                 {
                     using (WriteLockCookie.Create())
                     {
@@ -175,7 +175,7 @@ namespace DisposePlugin.Cache
 
         public bool HasDirtyFiles
         {
-            get { return !myDirtyFiles.IsEmpty(); }
+            get { return !_dirtyFiles.IsEmpty(); }
         }
 
         private static bool Accepts(IPsiSourceFile sourceFile)
@@ -186,9 +186,9 @@ namespace DisposePlugin.Cache
         [CanBeNull]
         public IEnumerable<DisposeMethodStatus> GetDisposeMethodStatusesForFile(IPsiSourceFile sourceFile)
         {
-            if (!mySourceFileToDisposeStatus.ContainsKey(sourceFile))
+            if (!_sourceFileToDisposeStatus.ContainsKey(sourceFile))
                 return null;
-            return mySourceFileToDisposeStatus.GetValuesCollection(sourceFile);
+            return _sourceFileToDisposeStatus.GetValuesCollection(sourceFile);
         }
 
         [CanBeNull]
@@ -220,16 +220,16 @@ namespace DisposePlugin.Cache
 
     public class DisposeCacheData
     {
-        private readonly IList<DisposeMethodStatus> myMethodStatuses;
+        private readonly IList<DisposeMethodStatus> _methodStatuses;
 
         public DisposeCacheData(IList<DisposeMethodStatus> methodStatuses)
         {
-            myMethodStatuses = methodStatuses;
+            _methodStatuses = methodStatuses;
         }
 
         public IList<DisposeMethodStatus> MethodStatuses
         {
-            get { return myMethodStatuses; }
+            get { return _methodStatuses; }
         }
     }
 }

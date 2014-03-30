@@ -8,38 +8,38 @@ namespace DisposePlugin.Cache
 {
     public class DisposeMethodStatus
     {
-        private readonly IPsiSourceFile myPsiSourceFile;
-        private string myName;
-        private int myOffset;
-        private IList<MethodArgumentStatus> myMethodArguments;
+        private readonly IPsiSourceFile _psiSourceFile;
+        private string _name;
+        private int _offset;
+        private IList<MethodArgumentStatus> _methodArguments;
 
         public DisposeMethodStatus(string name, int offset, IList<MethodArgumentStatus> methodArguments, IPsiSourceFile psiSourceFile)
         {
-            myName = name;
-            myOffset = offset;
-            myMethodArguments = methodArguments;
-            myPsiSourceFile = psiSourceFile;
+            _name = name;
+            _offset = offset;
+            _methodArguments = methodArguments;
+            _psiSourceFile = psiSourceFile;
         }
 
         #region DisposeMethodStatus Members
         public IPsiSourceFile PsiSourceFile
         {
-            get { return myPsiSourceFile; }
+            get { return _psiSourceFile; }
         }
 
         public string Name
         {
-            get { return myName; }
+            get { return _name; }
         }
 
         public int Offset
         {
-            get { return myOffset; }
+            get { return _offset; }
         }
 
         public IList<MethodArgumentStatus> MethodArguments
         {
-            get { return myMethodArguments; }
+            get { return _methodArguments; }
         }
         #endregion DisposeMethodStatus Members
 
@@ -66,31 +66,31 @@ namespace DisposePlugin.Cache
 
     public class MethodArgumentStatus
     {
-        private byte myNumber; // Для this равен 0
-        private VariableDisposeStatus myStatus;
-        private IList<InvokedMethod> myInvokedMethods;
+        private byte _number; // Для this равен 0
+        private VariableDisposeStatus _status;
+        private IList<InvokedMethod> _invokedMethods;
 
         public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedMethod> invokedMethods)
         {
-            myNumber = number;
-            myStatus = status;
-            myInvokedMethods = invokedMethods;
+            _number = number;
+            _status = status;
+            _invokedMethods = invokedMethods;
         }
 
         #region MethodArgumentStatus Members
         public byte Number
         {
-            get { return myNumber; }
+            get { return _number; }
         }
 
         public VariableDisposeStatus Status
         {
-            get { return myStatus; }
+            get { return _status; }
         }
 
         public IList<InvokedMethod> InvokedMethods
         {
-            get { return myInvokedMethods; }
+            get { return _invokedMethods; }
         }
         #endregion MethodArgumentStatus Members
 
@@ -117,31 +117,31 @@ namespace DisposePlugin.Cache
 
     public class InvokedMethod
     {
-        private string myName;
-        private int myOffset;
-        private byte myArgumentPosition; // Для объекта, на котором вызывают, равен 0
+        private string _name;
+        private int _offset;
+        private byte _argumentPosition; // Для объекта, на котором вызывают, равен 0
 
         public InvokedMethod(string name, int offset, byte argumentPosition)
         {
-            myName = name;
-            myOffset = offset;
-            myArgumentPosition = argumentPosition;
+            _name = name;
+            _offset = offset;
+            _argumentPosition = argumentPosition;
         }
 
         #region InvokedMethod Members
         public string Name
         {
-            get { return myName; }
+            get { return _name; }
         }
 
         public int Offset
         {
-            get { return myOffset; }
+            get { return _offset; }
         }
 
         public byte ArgumentPosition
         {
-            get { return myArgumentPosition; }
+            get { return _argumentPosition; }
         }
         #endregion InvokedMethod Members
 

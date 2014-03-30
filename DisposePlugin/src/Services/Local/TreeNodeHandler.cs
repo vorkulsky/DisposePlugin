@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using DisposePlugin.Cache;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
+using JetBrains.ProjectModel;
 using JetBrains.ReSharper.Psi;
-using JetBrains.ReSharper.Psi.ControlFlow.CSharp;
 using JetBrains.ReSharper.Psi.CSharp;
-using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Resolve;
 using JetBrains.ReSharper.Psi.Tree;
@@ -58,11 +58,10 @@ namespace DisposePlugin.Services.Local
             ProcessSimpleInvocation(invocationExpression, variableDeclaration, data);
         }
 
-        //TODO
         private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
             [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data)
         {
-            var connections = new Dictionary<IVariableDeclaration, IVariableDeclaration>();
+            var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
             foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
             {
                 var cSharpArgument = argument as ICSharpArgument;
@@ -72,19 +71,10 @@ namespace DisposePlugin.Services.Local
                 var varDecl = GetVariableDeclarationForExpression(argumentExpression, data);
                 if (varDecl == null) // Если переменную не рассматриваем.
                     continue;
-                var invocation = cSharpArgument.Invocation;
-                if (invocation == null)
-                    continue;
-                var reference = invocation.Reference as IReference;
-                if (reference == null)
-                    continue;
-                var argumentVariableDeclaration = GetVariableDeclarationByReference(reference);
-                if (argumentVariableDeclaration == null)
-                    continue;
-                if (data[argumentVariableDeclaration] == null)
+                if (data[varDecl] == null)
                     continue;
                 var matchingArgument = GetMatchingArgument(argument);
-                var matchingVarDecl = matchingArgument as IVariableDeclaration;
+                var matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
                 if (matchingVarDecl == null)
                     continue;
                 connections.Add(matchingVarDecl, varDecl);
@@ -106,9 +96,47 @@ namespace DisposePlugin.Services.Local
             if (invokedFunctionDeclaration == null)
                 return;
 
-            var graf = CSharpControlFlowBuilder.Build(invokedFunctionDeclaration) as CSharpControlFlowGraf;
-            if (graf == null)
-                return;
+            var offset = invokedFunctionDeclaration.GetNavigationRange().TextRange.StartOffset;
+            var cache = invokedFunctionDeclaration.GetPsiServices().Solution.GetComponent<DisposeCache>();
+            var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionDeclaration.GetSourceFile(), offset);
+            if (methodStatus == null)
+                return; //TODO пересчет хэша
+
+            var parameterDeclarations = connections.Keys.ToArray();
+            foreach (var parameterDeclaration in parameterDeclarations)
+            {
+                var number = GetNumberOfParameter(parameterDeclaration);
+                if (number == null)
+                    continue;
+                var argumentStatus = methodStatus.MethodArguments.Where(a => a.Number == number).Select(a => a).FirstOrDefault();
+                if (argumentStatus == null)
+                    continue;
+                if (argumentStatus.Status == VariableDisposeStatus.Disposed)
+                    data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
+                if (argumentStatus.Status == VariableDisposeStatus.Unknown)
+                {
+                   if (AnyoneMethodDispose(argumentStatus.InvokedMethods))
+                       data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
+                }
+            }
+        }
+
+        private static bool AnyoneMethodDispose(IList<InvokedMethod> invokedMethods)
+        {
+            //TODO
+        }
+
+        private static int? GetNumberOfParameter(IRegularParameterDeclaration parameterDeclaration)
+        {
+            var parent = parameterDeclaration.Parent;
+            var formalParameterList = parent as IFormalParameterList;
+            if (formalParameterList == null)
+                return null;
+            var parameterDeclarations = formalParameterList.ParameterDeclarations;
+            var index = parameterDeclarations.Where(p => p == parameterDeclaration).Select((p, i) => i+1).FirstOrDefault();
+            if (index == 0)
+                return null;
+            return index;
         }
 
         [CanBeNull]
@@ -146,7 +174,7 @@ namespace DisposePlugin.Services.Local
             var declaration = declaredElement.GetDeclarations().FirstOrDefault();
             if (declaration == null)
                 return null;
-            var variableDeclaration = declaration as IVariableDeclaration;
+            var variableDeclaration = declaration as ILocalVariableDeclaration;
             return variableDeclaration;
         }
 

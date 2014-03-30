@@ -12,11 +12,12 @@ namespace DisposePlugin.Services.Local
 {
     public class ControlFlowInspector : Services.ControlFlowInspector
     {
-        private readonly List<HighlightingInfo> _myHighlightings = new List<HighlightingInfo>();
+        private readonly List<HighlightingInfo> _highlightings = new List<HighlightingInfo>();
 
         public ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
             [NotNull] CSharpControlFlowGraf graf, int maxLevel, [NotNull] ITypeElement disposableInterface)
-            : base(functionDeclaration, graf, disposableInterface, new TreeNodeHandlerFactory(maxLevel),
+            : base(functionDeclaration, graf,
+            new TreeNodeHandlerFactory(maxLevel, disposableInterface),
             new ControlFlowElementDataStorage())
         {
         }
@@ -26,7 +27,7 @@ namespace DisposePlugin.Services.Local
             ElementDataStorage[Graf.EntryElement] = new ControlFlowElementData();
             DoStep(null, Graf.EntryElement, true);
             AddHighlightings();
-            return _myHighlightings;
+            return _highlightings;
         }
 
         private void AddHighlightings()
@@ -46,7 +47,7 @@ namespace DisposePlugin.Services.Local
             });
             variables.ForEach(variableDeclaration =>
             {
-                _myHighlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
+                _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
                     new LocalVariableNotDisposed(variableDeclaration.DeclaredName + " not disposed")));
             });
         }

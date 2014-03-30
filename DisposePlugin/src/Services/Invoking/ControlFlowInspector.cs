@@ -12,25 +12,32 @@ namespace DisposePlugin.Services.Invoking
 {
     public class ControlFlowInspector : Services.ControlFlowInspector
     {
+        private readonly Dictionary<int, IDeclaration> _disposableArguments;
+        private readonly bool _processThis;
+        [NotNull]
+        private readonly ITypeElement _disposableInterface;
+
         public ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
             [NotNull] CSharpControlFlowGraf graf, [NotNull] ITypeElement disposableInterface)
-            : base(functionDeclaration, graf, disposableInterface, new TreeNodeHandlerFactory(), new ControlFlowElementDataStorage())
+            : base(functionDeclaration, graf, new TreeNodeHandlerFactory(disposableInterface), new ControlFlowElementDataStorage())
         {
-            
+            _disposableInterface = disposableInterface;
+            _disposableArguments = GetDisposableArguments();
+            _processThis = IsThisDisposable();
         }
 
         public IList<MethodArgumentStatus> GetMethodArgumentStatuses()
         {
-            var disposableArguments = GetDisposableArguments();
-            var processThis = IsThisDisposeable();
-            DoStep(null, Graf.EntryElement, true);
+            if (_disposableArguments.Count == 0 && !_processThis)
+                return new List<MethodArgumentStatus>();
+            //DoStep(null, Graf.EntryElement, true);
             return new List<MethodArgumentStatus>();
         }
 
-        private bool IsThisDisposeable()
+        private bool IsThisDisposable()
         {
             var typeDeclaration = FunctionDeclaration.GetContainingTypeDeclaration();
-            return DisposeUtil.HasDisposable(typeDeclaration, DisposableInterface);
+            return DisposeUtil.HasDisposable(typeDeclaration, _disposableInterface);
         }
 
         private Dictionary<int, IDeclaration> GetDisposableArguments()
@@ -49,7 +56,7 @@ namespace DisposePlugin.Services.Invoking
                 var declaredElement = scalarType.Resolve().DeclaredElement;
                 if (declaredElement == null)
                     continue;
-                if (DisposeUtil.HasDisposable(declaredElement, DisposableInterface))
+                if (DisposeUtil.HasDisposable(declaredElement, _disposableInterface))
                 {
                     var declarations = param.GetDeclarationsIn(FunctionDeclaration.GetSourceFile());
                     var declaration = declarations.FirstOrDefault();

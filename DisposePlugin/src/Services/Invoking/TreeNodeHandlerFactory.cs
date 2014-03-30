@@ -5,9 +5,17 @@ namespace DisposePlugin.Services.Invoking
 {
     public class TreeNodeHandlerFactory : ITreeNodeHandlerFactory
     {
-        public ITreeNodeHandler GetNewTreeNodeHandler([NotNull] ITypeElement disposableInterface)
+        [NotNull]
+        private readonly ITypeElement _disposableInterface;
+
+        public TreeNodeHandlerFactory([NotNull] ITypeElement disposableInterface)
         {
-            return new TreeNodeHandler(disposableInterface);
+            _disposableInterface = disposableInterface;
+
+        }
+        public ITreeNodeHandler GetNewTreeNodeHandler()
+        {
+            return new TreeNodeHandler(_disposableInterface);
         }
     }
 }

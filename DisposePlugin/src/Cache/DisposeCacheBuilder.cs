@@ -15,7 +15,7 @@ namespace DisposePlugin.Cache
 {
     public class DisposeCacheBuilder : IRecursiveElementProcessor
     {
-        private readonly List<DisposeMethodStatus> myStatuses = new List<DisposeMethodStatus>();
+        private readonly List<DisposeMethodStatus> _statuses = new List<DisposeMethodStatus>();
 
         public bool InteriorShouldBeProcessed(ITreeNode element)
         {
@@ -44,7 +44,7 @@ namespace DisposePlugin.Cache
 
             var grafInspector = new ControlFlowInspector(functionDeclaration, graf, disposableInterface);
             var methodArguments = grafInspector.GetMethodArgumentStatuses();
-            myStatuses.Add(new DisposeMethodStatus(name, offset, methodArguments, sourceFile));
+            _statuses.Add(new DisposeMethodStatus(name, offset, methodArguments, sourceFile));
         }
 
         public void ProcessAfterInterior(ITreeNode element)
@@ -58,7 +58,7 @@ namespace DisposePlugin.Cache
 
         private IList<DisposeMethodStatus> GetStatuses()
         {
-            return myStatuses;
+            return _statuses;
         }
 
         [CanBeNull]
