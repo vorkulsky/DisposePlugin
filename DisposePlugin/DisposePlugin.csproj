@@ -63,12 +63,10 @@
     <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />
     <Compile Include="src\CodeInspections\Highlighting\NotDisposableContainsDisposableField.cs" />
     <Compile Include="src\Services\ControlFlowElementDataStorage.cs" />
-    <Compile Include="src\Services\Invoking\ControlFlowElementDataStorage.cs" />
     <Compile Include="src\Services\Invoking\ControlFlowInspector.cs" />
     <Compile Include="src\Services\Invoking\TreeNodeHandler.cs" />
     <Compile Include="src\Services\Invoking\TreeNodeHandlerFactory.cs" />
     <Compile Include="src\Services\ITreeNodeHandler.cs" />
-    <Compile Include="src\Services\Local\ControlFlowElementDataStorage.cs" />
     <Compile Include="src\Services\Local\ControlFlowInspector.cs" />
     <Compile Include="src\Services\Local\TreeNodeHandler.cs" />
     <Compile Include="src\Services\Local\TreeNodeHandlerFactory.cs" />

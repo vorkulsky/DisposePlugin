@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DisposePlugin.Cache;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.Util;
 
@@ -10,12 +11,16 @@ namespace DisposePlugin.Services
         Disposed,
         NotDisposed,
         Both,
-        Unknown
+        Unknown,
+        DependsOnInvocation, // Используется только при построении кэша, оптимистичный подход
     };
 
     public class ControlFlowElementData
     {
         private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
+        public OneToListMap<IVariableDeclaration, InvokedMethod> InvokedMethods = new OneToListMap<IVariableDeclaration, InvokedMethod>();
+        public VariableDisposeStatus? ThisStatus;
+        public IList<InvokedMethod> ThisInvokedMethods = new List<InvokedMethod>();
         private bool _visited; // = false
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
@@ -48,6 +53,9 @@ namespace DisposePlugin.Services
         {
             var clone = new ControlFlowElementData();
             _status.ForEach(kvp => clone[kvp.Key] = kvp.Value);
+            InvokedMethods.ForEach(kvl => clone.InvokedMethods.AddValueRange(kvl.Key, kvl.Value));
+            clone.ThisStatus = ThisStatus;
+            ThisInvokedMethods.ForEach(m => clone.ThisInvokedMethods.Add(m));
             return clone;
         }
 

@@ -119,7 +119,9 @@ namespace DisposePlugin.Cache
     {
         private string _name;
         private int _offset;
-        private byte _argumentPosition; // Для объекта, на котором вызывают, равен 0
+        // Номер аргумента в выражении вызова метода
+        // Для объекта, на котором вызывают, равен 0
+        private byte _argumentPosition;
 
         public InvokedMethod(string name, int offset, byte argumentPosition)
         {

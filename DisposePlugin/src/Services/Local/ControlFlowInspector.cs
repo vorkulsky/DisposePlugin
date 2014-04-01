@@ -13,19 +13,25 @@ namespace DisposePlugin.Services.Local
     public class ControlFlowInspector : Services.ControlFlowInspector
     {
         private readonly List<HighlightingInfo> _highlightings = new List<HighlightingInfo>();
+        [NotNull]
+        private readonly ITypeElement _disposableInterface;
+        private readonly int _maxLevel;
+        private ControlFlowElementDataStorage _elementDataStorage;
 
         public ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
             [NotNull] CSharpControlFlowGraf graf, int maxLevel, [NotNull] ITypeElement disposableInterface)
-            : base(functionDeclaration, graf,
-            new TreeNodeHandlerFactory(maxLevel, disposableInterface),
-            new ControlFlowElementDataStorage())
+            : base(functionDeclaration, graf)
         {
+            _disposableInterface = disposableInterface;
+            _maxLevel = maxLevel;
         }
 
         public List<HighlightingInfo> Inspect()
         {
-            ElementDataStorage[Graf.EntryElement] = new ControlFlowElementData();
-            DoStep(null, Graf.EntryElement, true);
+            _elementDataStorage = new ControlFlowElementDataStorage();
+            _elementDataStorage[Graf.EntryElement] = new ControlFlowElementData();
+            var nodeHandlerFactory = new TreeNodeHandlerFactory(_maxLevel, _disposableInterface);
+            DoStep(null, Graf.EntryElement, true, nodeHandlerFactory, _elementDataStorage);
             AddHighlightings();
             return _highlightings;
         }
@@ -35,7 +41,7 @@ namespace DisposePlugin.Services.Local
             var variables = new HashSet<IVariableDeclaration>();
             Graf.ReachableExits.ForEach(exit =>
             {
-                var data = ElementDataStorage[exit.Source];
+                var data = _elementDataStorage[exit.Source];
                 if (data != null)
                 {
                     data.Status.ForEach(kvp =>

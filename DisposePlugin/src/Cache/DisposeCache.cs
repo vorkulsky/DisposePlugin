@@ -184,7 +184,7 @@ namespace DisposePlugin.Cache
         }
 
         [CanBeNull]
-        public IEnumerable<DisposeMethodStatus> GetDisposeMethodStatusesForFile(IPsiSourceFile sourceFile)
+        public IEnumerable<DisposeMethodStatus> GetDisposeMethodStatusesForFile([NotNull] IPsiSourceFile sourceFile)
         {
             if (!_sourceFileToDisposeStatus.ContainsKey(sourceFile))
                 return null;
@@ -192,7 +192,7 @@ namespace DisposePlugin.Cache
         }
 
         [CanBeNull]
-        public DisposeMethodStatus GetDisposeMethodStatusesForMethod(IPsiSourceFile sourceFile, int offset)
+        public DisposeMethodStatus GetDisposeMethodStatusesForMethod([NotNull] IPsiSourceFile sourceFile, int offset)
         {
             var data = GetDisposeMethodStatusesForFile(sourceFile);
             if (data == null)

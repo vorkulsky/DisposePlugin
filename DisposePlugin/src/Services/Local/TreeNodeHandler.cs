@@ -3,10 +3,12 @@ using System.Linq;
 using DisposePlugin.Cache;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
+using JetBrains.DocumentModel;
 using JetBrains.ProjectModel;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
+using JetBrains.ReSharper.Psi.Files;
 using JetBrains.ReSharper.Psi.Resolve;
 using JetBrains.ReSharper.Psi.Tree;
 
@@ -55,12 +57,14 @@ namespace DisposePlugin.Services.Local
                 data[variableDeclaration] = VariableDisposeStatus.Disposed;
                 return;
             }
-            ProcessSimpleInvocation(invocationExpression, variableDeclaration, data);
+            ProcessSimpleInvocation(invocationExpression, variableDeclaration, data, 1);
         }
 
         private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
-            [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data)
+            [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data, int level)
         {
+            if (level > _maxLevel) //TODO пометить переменную как незадиспоженную
+                return;
             var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
             foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
             {
@@ -98,7 +102,10 @@ namespace DisposePlugin.Services.Local
 
             var offset = invokedFunctionDeclaration.GetNavigationRange().TextRange.StartOffset;
             var cache = invokedFunctionDeclaration.GetPsiServices().Solution.GetComponent<DisposeCache>();
-            var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionDeclaration.GetSourceFile(), offset);
+            var invokedFunctionSourceFile = invokedFunctionDeclaration.GetSourceFile();
+            if (invokedFunctionSourceFile == null)
+                return;
+            var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionSourceFile, offset);
             if (methodStatus == null)
                 return; //TODO пересчет хэша
 
@@ -113,17 +120,32 @@ namespace DisposePlugin.Services.Local
                     continue;
                 if (argumentStatus.Status == VariableDisposeStatus.Disposed)
                     data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
-                if (argumentStatus.Status == VariableDisposeStatus.Unknown)
+                if (argumentStatus.Status == VariableDisposeStatus.Unknown && level != _maxLevel)
                 {
-                   if (AnyoneMethodDispose(argumentStatus.InvokedMethods))
+                   if (AnyoneMethodDispose(argumentStatus.InvokedMethods, invokedFunctionSourceFile, level))
                        data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
                 }
             }
         }
 
-        private static bool AnyoneMethodDispose(IList<InvokedMethod> invokedMethods)
+        private static bool AnyoneMethodDispose(IList<InvokedMethod> invokedMethods, [NotNull] IPsiSourceFile sourceFile, int level)
         {
-            //TODO
+            if (invokedMethods.Count == 0)
+                return false;
+            foreach (var invokedMethod in invokedMethods)
+            {
+                var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
+                if (file == null)
+                    continue;
+                var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedMethod.Offset), 1));
+                if (elem == null)
+                    continue;
+                var functionDeclaration = elem.Parent as ICSharpFunctionDeclaration;
+                if (functionDeclaration == null)
+                    continue;
+                //TODO закончить, когда будет готов кэш
+            }
+            return false;
         }
 
         private static int? GetNumberOfParameter(IRegularParameterDeclaration parameterDeclaration)

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using JetBrains.Annotations;
-using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
@@ -16,34 +15,29 @@ namespace DisposePlugin.Services
         [NotNull]
         protected readonly ICSharpFunctionDeclaration FunctionDeclaration;
 
-        protected readonly ControlFlowElementDataStorage ElementDataStorage;
-        protected readonly ITreeNodeHandlerFactory NodeHandlerFactory;
-
         #endregion
 
         protected ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
-            [NotNull] CSharpControlFlowGraf graf, ITreeNodeHandlerFactory nodeHandlerFactory,
-            ControlFlowElementDataStorage elementDataStorage)
+            [NotNull] CSharpControlFlowGraf graf)
         {
             FunctionDeclaration = functionDeclaration;
             Graf = graf;
-            NodeHandlerFactory = nodeHandlerFactory;
-            ElementDataStorage = elementDataStorage;
         }
 
-        protected void DoStep([CanBeNull] IControlFlowElement previous, [NotNull] IControlFlowElement current, bool visitNew)
+        protected void DoStep([CanBeNull] IControlFlowElement previous, [NotNull] IControlFlowElement current, bool visitNew,
+            ITreeNodeHandlerFactory nodeHandlerFactory, ControlFlowElementDataStorage elementDataStorage)
         {
             if (!current.IsReachable)
                 return;
 
             var changesAre = false;
-            if (previous != null) 
-               changesAre = ElementDataStorage.Merge(previous, current);
+            if (previous != null)
+                changesAre = elementDataStorage.Merge(previous, current);
 
             var newVisited = false;
             if (visitNew)
             {
-                var currentData = ElementDataStorage[current];
+                var currentData = elementDataStorage[current];
                 Debug.Assert(currentData != null, "currentData != null");
                 if (!currentData.IsVisited())
                 {
@@ -51,7 +45,7 @@ namespace DisposePlugin.Services
                     var node = current.SourceElement;
                     if (node != null)
                     {
-                        var handler = NodeHandlerFactory.GetNewTreeNodeHandler();
+                        var handler = nodeHandlerFactory.GetNewTreeNodeHandler();
                         handler.ProcessTreeNode(node, currentData);
                     }
                     newVisited = true;
@@ -64,7 +58,7 @@ namespace DisposePlugin.Services
                 var target = rib.Target;
                 if (target == null)
                     continue;
-                DoStep(current, target, newVisited);
+                DoStep(current, target, newVisited, nodeHandlerFactory, elementDataStorage);
             }
         }
     }
