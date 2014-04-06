@@ -69,13 +69,13 @@ namespace DisposePlugin.Cache
         private readonly IPsiSourceFile _psiSourceFile;
         private byte _number; // Для this равен 0
         private VariableDisposeStatus _status;
-        private IList<InvokedMethod> _invokedMethods;
+        private IList<InvokedExpression> _invokedExpressions;
 
-        public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedMethod> invokedMethods, IPsiSourceFile psiSourceFile)
+        public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedExpression> invokedExpressions, IPsiSourceFile psiSourceFile)
         {
             _number = number;
             _status = status;
-            _invokedMethods = invokedMethods;
+            _invokedExpressions = invokedExpressions;
             _psiSourceFile = psiSourceFile;
         }
 
@@ -95,9 +95,9 @@ namespace DisposePlugin.Cache
             get { return _status; }
         }
 
-        public IList<InvokedMethod> InvokedMethods
+        public IList<InvokedExpression> InvokedExpressions
         {
-            get { return _invokedMethods; }
+            get { return _invokedExpressions; }
         }
         #endregion MethodArgumentStatus Members
 
@@ -105,9 +105,9 @@ namespace DisposePlugin.Cache
         {
             writer.Write(Number);
             writer.Write(Status.ToString());
-            writer.Write(InvokedMethods.Count);
-            foreach (var method in InvokedMethods)
-                method.Write(writer);
+            writer.Write(InvokedExpressions.Count);
+            foreach (var expression in InvokedExpressions)
+                expression.Write(writer);
         }
 
         public static MethodArgumentStatus Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
@@ -115,14 +115,14 @@ namespace DisposePlugin.Cache
             var number = reader.ReadByte();
             var status = (VariableDisposeStatus) Enum.Parse(typeof(VariableDisposeStatus), reader.ReadString());
             var count = reader.ReadInt32();
-            var invokedMethods = new List<InvokedMethod>(count);
+            var invokedExpressions = new List<InvokedExpression>(count);
             for (var i = 0; i < count; i++)
-                invokedMethods.Add(InvokedMethod.Read(reader, psiSourceFile));
-            return new MethodArgumentStatus(number, status, invokedMethods, psiSourceFile);
+                invokedExpressions.Add(InvokedExpression.Read(reader, psiSourceFile));
+            return new MethodArgumentStatus(number, status, invokedExpressions, psiSourceFile);
         }
     }
 
-    public class InvokedMethod
+    public class InvokedExpression
     {
         private readonly IPsiSourceFile _psiSourceFile;
         // Имя вызываемого метода
@@ -133,7 +133,7 @@ namespace DisposePlugin.Cache
         // Для объекта, на котором вызывают, равен 0
         private byte _argumentPosition;
 
-        public InvokedMethod(string name, int offset, byte argumentPosition, IPsiSourceFile psiSourceFile)
+        public InvokedExpression(string name, int offset, byte argumentPosition, IPsiSourceFile psiSourceFile)
         {
             _name = name;
             _offset = offset;
@@ -141,7 +141,7 @@ namespace DisposePlugin.Cache
             _psiSourceFile = psiSourceFile;
         }
 
-        #region InvokedMethod Members
+        #region InvokedExpression Members
         public IPsiSourceFile PsiSourceFile
         {
             get { return _psiSourceFile; }
@@ -160,7 +160,7 @@ namespace DisposePlugin.Cache
         {
             get { return _argumentPosition; }
         }
-        #endregion InvokedMethod Members
+        #endregion InvokedExpression Members
 
         public void Write(BinaryWriter writer)
         {
@@ -169,12 +169,12 @@ namespace DisposePlugin.Cache
             writer.Write(ArgumentPosition);
         }
 
-        public static InvokedMethod Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
+        public static InvokedExpression Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
         {
             var name = reader.ReadString();
             var offset = reader.ReadInt32();
             var argumentPosition = reader.ReadByte();
-            return new InvokedMethod(name, offset, argumentPosition, psiSourceFile);
+            return new InvokedExpression(name, offset, argumentPosition, psiSourceFile);
         }
     }
 }

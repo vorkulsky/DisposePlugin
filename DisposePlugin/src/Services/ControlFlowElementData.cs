@@ -18,9 +18,9 @@ namespace DisposePlugin.Services
     public class ControlFlowElementData
     {
         private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
-        public OneToListMap<IVariableDeclaration, InvokedMethod> InvokedMethods = new OneToListMap<IVariableDeclaration, InvokedMethod>();
+        public OneToListMap<IVariableDeclaration, InvokedExpression> InvokedExpressions = new OneToListMap<IVariableDeclaration, InvokedExpression>();
         public VariableDisposeStatus? ThisStatus;
-        public IList<InvokedMethod> ThisInvokedMethods = new List<InvokedMethod>();
+        public IList<InvokedExpression> ThisInvokedExpressions = new List<InvokedExpression>();
         private bool _visited; // = false
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
@@ -55,9 +55,9 @@ namespace DisposePlugin.Services
         {
             var clone = new ControlFlowElementData();
             _status.ForEach(kvp => clone[kvp.Key] = kvp.Value);
-            InvokedMethods.ForEach(kvl => clone.InvokedMethods.AddValueRange(kvl.Key, kvl.Value));
+            InvokedExpressions.ForEach(kvl => clone.InvokedExpressions.AddValueRange(kvl.Key, kvl.Value));
             clone.ThisStatus = ThisStatus;
-            ThisInvokedMethods.ForEach(m => clone.ThisInvokedMethods.Add(m));
+            ThisInvokedExpressions.ForEach(m => clone.ThisInvokedExpressions.Add(m));
             return clone;
         }
 

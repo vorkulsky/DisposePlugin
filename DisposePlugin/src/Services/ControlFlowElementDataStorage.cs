@@ -64,7 +64,7 @@ namespace DisposePlugin.Services
             Boolean changesAre;
             var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
             var newTargetData = ProcessUnknown(currentData ?? previousData.Clone(), previousElems, out changesAre);
-            changesAre = changesAre || UpdateInvokedMethods(newTargetData, previousElems);
+            changesAre = changesAre || UpdateInvokedExpressions(newTargetData, previousElems);
             this[currentElement] = newTargetData;
             return changesAre;
         }
@@ -123,47 +123,47 @@ namespace DisposePlugin.Services
             return previousElems.Select(previousElementData => previousElementData.ThisStatus ?? VariableDisposeStatus.Unknown).ToHashSet();
         }
 
-        private bool UpdateInvokedMethods([NotNull] ControlFlowElementData data, ICollection<ControlFlowElementData> previousElems)
+        private bool UpdateInvokedExpressions([NotNull] ControlFlowElementData data, ICollection<ControlFlowElementData> previousElems)
         {
             var changesAre = false;
-            var invokedMethodsResult = new OneToListMap<IVariableDeclaration, InvokedMethod>();
-            foreach (var kvp in data.InvokedMethods)
+            var invokedExpressionsResult = new OneToListMap<IVariableDeclaration, InvokedExpression>();
+            foreach (var kvp in data.InvokedExpressions)
             {
-                var invokedMethodSet = GetPreviousElemsInvokedMethodSet(previousElems, kvp.Key);
+                var invokedExpressionSet = GetPreviousElemsInvokedExpressionSet(previousElems, kvp.Key);
                 var sizeBefore = kvp.Value.Count;
-                invokedMethodSet.UnionWith(kvp.Value);
-                var sizeAfter = invokedMethodSet.Count;
+                invokedExpressionSet.UnionWith(kvp.Value);
+                var sizeAfter = invokedExpressionSet.Count;
                 if (sizeBefore != sizeAfter) // Количество вызванных методов не может уменьшаться
                     changesAre = true;
-                invokedMethodsResult.AddValueRange(kvp.Key, invokedMethodSet);
+                invokedExpressionsResult.AddValueRange(kvp.Key, invokedExpressionSet);
             }
-            data.InvokedMethods = invokedMethodsResult;
+            data.InvokedExpressions = invokedExpressionsResult;
 
-            // Обновляем ThisInvokedMethods
+            // Обновляем ThisInvokedExpressions
             if (data.ThisStatus != null)
             {
-                var invokedMethodSet = GetPreviousElemsThisInvokedMethodSet(previousElems);
-                var sizeBefore = data.ThisInvokedMethods.Count;
-                invokedMethodSet.UnionWith(data.ThisInvokedMethods);
-                var sizeAfter = invokedMethodSet.Count;
+                var invokedExpressionSet = GetPreviousElemsThisInvokedExpressionSet(previousElems);
+                var sizeBefore = data.ThisInvokedExpressions.Count;
+                invokedExpressionSet.UnionWith(data.ThisInvokedExpressions);
+                var sizeAfter = invokedExpressionSet.Count;
                 if (sizeBefore != sizeAfter)
                     changesAre = true;
-                data.ThisInvokedMethods = invokedMethodSet.ToList();
+                data.ThisInvokedExpressions = invokedExpressionSet.ToList();
             }
 
             return changesAre;
         }
 
-        private JetHashSet<InvokedMethod> GetPreviousElemsInvokedMethodSet(IEnumerable<ControlFlowElementData> previousElems,
+        private JetHashSet<InvokedExpression> GetPreviousElemsInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems,
             IVariableDeclaration variable)
         {
-            return previousElems.SelectMany(previousElementData => previousElementData.InvokedMethods)
+            return previousElems.SelectMany(previousElementData => previousElementData.InvokedExpressions)
                 .Where(kvp => kvp.Key == variable).SelectMany(kvp => kvp.Value).ToHashSet();
         }
 
-        private JetHashSet<InvokedMethod> GetPreviousElemsThisInvokedMethodSet(IEnumerable<ControlFlowElementData> previousElems)
+        private JetHashSet<InvokedExpression> GetPreviousElemsThisInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems)
         {
-            return previousElems.SelectMany(previousElementData => previousElementData.ThisInvokedMethods).ToHashSet();
+            return previousElems.SelectMany(previousElementData => previousElementData.ThisInvokedExpressions).ToHashSet();
         }
     }
 }

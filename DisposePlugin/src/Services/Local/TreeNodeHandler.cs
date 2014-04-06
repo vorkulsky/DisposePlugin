@@ -95,7 +95,7 @@ namespace DisposePlugin.Services.Local
                     data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
                 if (argumentStatus.Status == VariableDisposeStatus.DependsOnInvocation)
                 {
-                    if (AnyoneMethodDispose(argumentStatus.InvokedMethods, level))
+                    if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
                         data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
                 }
             }
@@ -180,24 +180,24 @@ namespace DisposePlugin.Services.Local
             return methodStatus;
         }
 
-        private bool ProcessInvocationRecursively([NotNull] InvokedMethod invokedMethod, int level)
+        private bool ProcessInvocationRecursively([NotNull] InvokedExpression invokedExpression, int level)
         {
-            var sourceFile = invokedMethod.PsiSourceFile;
+            var sourceFile = invokedExpression.PsiSourceFile;
             if (sourceFile == null) // Такого не должно случиться.
                 return false;
             var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
             if (file == null)
                 return false;
-            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedMethod.Offset), 1));
+            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedExpression.Offset), 1));
             if (elem == null)
                 return false;
             var invocationExpression = TreeNodeHandlerUtil.GoUpToNodeWithType<IInvocationExpression>(elem);
             if (invocationExpression == null)
                 return false;
             var arguments = invocationExpression.InvocationExpressionReference.Invocation.Arguments;
-            if (arguments.Count < invokedMethod.ArgumentPosition)
+            if (arguments.Count < invokedExpression.ArgumentPosition)
                 return false;
-            var argument = arguments.ElementAt(invokedMethod.ArgumentPosition - 1);
+            var argument = arguments.ElementAt(invokedExpression.ArgumentPosition - 1);
             var matchingArgument = TreeNodeHandlerUtil.GetMatchingArgument(argument);
             var matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
             if (matchingVarDecl == null)
@@ -212,17 +212,17 @@ namespace DisposePlugin.Services.Local
                 return true;
             if (argumentStatus.Status == VariableDisposeStatus.DependsOnInvocation)
             {
-                return AnyoneMethodDispose(argumentStatus.InvokedMethods, level);
+                return AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level);
             }
             return false;
         }
 
-        private bool AnyoneMethodDispose(ICollection<InvokedMethod> invokedMethods, int level)
+        private bool AnyoneInvokedExpressionDispose(ICollection<InvokedExpression> invokedExpressions, int level)
         {
-            if (invokedMethods.Count == 0)
+            if (invokedExpressions.Count == 0)
                 return false;
             if (level != _maxLevel)
-                return invokedMethods.Any(invokedMethod => ProcessInvocationRecursively(invokedMethod, level));
+                return invokedExpressions.Any(invokedExpression => ProcessInvocationRecursively(invokedExpression, level));
             return false;
         }
     }

@@ -46,30 +46,30 @@ namespace DisposePlugin.Services.Invoking
         private IList<MethodArgumentStatus> CalculateArgumentStatuses()
         {
             var argumentStatuses = new List<MethodArgumentStatus>();
-            var allMethods = new OneToSetMap<IVariableDeclaration, InvokedMethod>();
+            var allInvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpression>();
             var allStatuses = new OneToSetMap<IVariableDeclaration, VariableDisposeStatus>();
             DoForEachExit(data =>
                 {
-                    data.InvokedMethods.ForEach(kvp => allMethods.AddRange(kvp.Key, kvp.Value));
+                    data.InvokedExpressions.ForEach(kvp => allInvokedExpressions.AddRange(kvp.Key, kvp.Value));
                     data.Status.ForEach(kvp => allStatuses.Add(kvp.Key, kvp.Value));
                 });
             var generalStatuses = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
             allStatuses.ForEach(kvp => generalStatuses.Add(kvp.Key, GetGeneralStatus(kvp.Value)));
             _disposableArguments.ForEach(kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
-                allMethods[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
+                allInvokedExpressions[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
 
             if (_processThis)
             {
-                var allThisMethods = new HashSet<InvokedMethod>();
+                var allThisInvokedExpressions = new HashSet<InvokedExpression>();
                 var allThisStatuses = new HashSet<VariableDisposeStatus>();
                 DoForEachExit(data =>
                     {
-                        allThisMethods.UnionWith(data.ThisInvokedMethods);
+                        allThisInvokedExpressions.UnionWith(data.ThisInvokedExpressions);
                         if (data.ThisStatus.HasValue)
                             allThisStatuses.Add(data.ThisStatus.Value);
                     });
                 argumentStatuses.Add(new MethodArgumentStatus(0, GetGeneralStatus(allThisStatuses),
-                    allThisMethods.OrderBy(im => im.Offset).ToList(), _psiSourceFile));
+                    allThisInvokedExpressions.OrderBy(im => im.Offset).ToList(), _psiSourceFile));
             }
 
             return argumentStatuses.OrderBy(mas => mas.Number).ToList();

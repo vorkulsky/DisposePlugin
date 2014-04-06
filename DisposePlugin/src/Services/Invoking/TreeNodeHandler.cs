@@ -70,8 +70,8 @@ namespace DisposePlugin.Services.Invoking
                 data.ThisStatus = VariableDisposeStatus.DependsOnInvocation;
             foreach (var position in thisPositions)
             {
-                var invokedMethod = new InvokedMethod(name, offset, position, sourceFile);
-                data.ThisInvokedMethods.Add(invokedMethod);
+                var invokedExpression = new InvokedExpression(name, offset, position, sourceFile);
+                data.ThisInvokedExpressions.Add(invokedExpression);
             }
 
             //обработка qualifierVariableDeclaration, в том числе this
@@ -79,8 +79,8 @@ namespace DisposePlugin.Services.Invoking
                 SaveInvocationData(data, qualifierDisposableVariableDeclaration, 0, name, offset, sourceFile);
             else if (isInvocationOnDisposableThis)
             {
-                var invokedMethod = new InvokedMethod(name, offset, 0, sourceFile);
-                data.ThisInvokedMethods.Add(invokedMethod);
+                var invokedExpression = new InvokedExpression(name, offset, 0, sourceFile);
+                data.ThisInvokedExpressions.Add(invokedExpression);
             }
         }
 
@@ -88,8 +88,8 @@ namespace DisposePlugin.Services.Invoking
             byte position, string name, int offset, IPsiSourceFile sourceFile)
         {
             data[variable] = VariableDisposeStatus.DependsOnInvocation;
-            var invokedMethod = new InvokedMethod(name, offset, position, sourceFile);
-            data.InvokedMethods.Add(variable, invokedMethod);
+            var invokedExpression = new InvokedExpression(name, offset, position, sourceFile);
+            data.InvokedExpressions.Add(variable, invokedExpression);
         }
 
         private static void CalculatePositionOfDisposableVariables(IInvocationExpression invocationExpression,
