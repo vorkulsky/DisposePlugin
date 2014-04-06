@@ -18,6 +18,7 @@ namespace DisposePlugin.Services.Invoking
         [NotNull]
         private readonly ITypeElement _disposableInterface;
         private readonly ControlFlowElementDataStorage _elementDataStorage;
+        private readonly IPsiSourceFile _psiSourceFile;
 
         public ControlFlowInspector([NotNull] ICSharpFunctionDeclaration functionDeclaration,
             [NotNull] CSharpControlFlowGraf graf, [NotNull] ITypeElement disposableInterface)
@@ -27,6 +28,7 @@ namespace DisposePlugin.Services.Invoking
             _disposableArguments = GetDisposableArguments();
             _processThis = IsThisDisposable();
             _elementDataStorage = InitElementDataStorage();
+            _psiSourceFile = functionDeclaration.GetSourceFile();
         }
 
         public IList<MethodArgumentStatus> GetMethodArgumentStatuses()
@@ -54,7 +56,7 @@ namespace DisposePlugin.Services.Invoking
             var generalStatuses = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
             allStatuses.ForEach(kvp => generalStatuses.Add(kvp.Key, GetGeneralStatus(kvp.Value)));
             _disposableArguments.ForEach(kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
-                allMethods[kvp.Key].OrderBy(im => im.Offset).ToList())));
+                allMethods[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
 
             if (_processThis)
             {
@@ -66,7 +68,8 @@ namespace DisposePlugin.Services.Invoking
                         if (data.ThisStatus.HasValue)
                             allThisStatuses.Add(data.ThisStatus.Value);
                     });
-                argumentStatuses.Add(new MethodArgumentStatus(0, GetGeneralStatus(allThisStatuses), allThisMethods.OrderBy(im => im.Offset).ToList()));
+                argumentStatuses.Add(new MethodArgumentStatus(0, GetGeneralStatus(allThisStatuses),
+                    allThisMethods.OrderBy(im => im.Offset).ToList(), _psiSourceFile));
             }
 
             return argumentStatuses.OrderBy(mas => mas.Number).ToList();

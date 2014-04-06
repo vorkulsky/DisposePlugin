@@ -72,6 +72,7 @@
     <Compile Include="src\Services\Local\TreeNodeHandlerFactory.cs" />
     <Compile Include="src\Services\ITreeNodeHandlerFactory.cs" />
     <Compile Include="src\Util\DisposeUtil.cs" />
+    <Compile Include="src\Util\TreeNodeHandlerUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -41,6 +41,8 @@ namespace DisposePlugin.Services
             }
             get
             {
+                if (index == null)
+                    return null;
                 VariableDisposeStatus data;
                 _status.TryGetValue(index, out data);
                 return data;
