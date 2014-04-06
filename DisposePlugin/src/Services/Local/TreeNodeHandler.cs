@@ -52,46 +52,40 @@ namespace DisposePlugin.Services.Local
         private void ProcessInvocationExpression([NotNull] IInvocationExpression invocationExpression,
             ControlFlowElementData data)
         {
-            var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invocationExpression);
-            if (data[qualifierVariableDeclaration] != null && TreeNodeHandlerUtil.IsSimpleDisposeInvocation(invocationExpression))
-            {
-                data[qualifierVariableDeclaration] = VariableDisposeStatus.Disposed;
+            var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
+            if (invokedExpression == null)
                 return;
-            }
-            ProcessSimpleInvocation(invocationExpression, qualifierVariableDeclaration, data, 1);
-        }
+            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression, _disposableInterface);
+            var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invokedExpression);
+            var qualifierDisposableVariableDeclaration = data[qualifierVariableDeclaration] != null
+                ? qualifierVariableDeclaration : null;
 
-        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
-            [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data, int level)
-        {
-            var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
-            foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
-            {
-                var cSharpArgument = argument as ICSharpArgument;
-                if (cSharpArgument == null)
-                    continue;
-                var argumentExpression = cSharpArgument.Value;
-                var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForExpression(argumentExpression);
-                if (varDecl == null)
-                    continue;
-                if (data[varDecl] == null) // Если переменную не рассматриваем.
-                    continue;
-                var matchingArgument = TreeNodeHandlerUtil.GetMatchingArgument(argument);
-                var matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
-                if (matchingVarDecl == null)
-                    continue;
-                connections.Add(matchingVarDecl, varDecl);
-            }
-
-            if (!Enumerable.Any(connections) && qualifierVariableDeclaration == null)
+            if (TreeNodeHandlerUtil.CheckOnDisposeInvocation(invocationExpression, data, isInvocationOnDisposableThis,
+                qualifierDisposableVariableDeclaration))
                 return;
 
             if (_maxLevel <= 0)
                 return;
 
+            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration, isInvocationOnDisposableThis, 1);
+        }
+
+        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression, ControlFlowElementData data,
+            [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis, int level)
+        {
+            var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
+            var thisConnections = new List<IVariableDeclaration>();
+            CalculateConnectionOfDisposableVariables(invocationExpression, data, thisConnections, connections);
+
+            if (!connections.Any() && !thisConnections.Any() && qualifierDisposableVariableDeclaration == null && !isInvocationOnDisposableThis)
+                return;
+
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
                 return; //TODO пересчет хэша
+
+            //TODO this в качестве аргумента
+            //TODO обработка qualifierVariableDeclaration, в том числе this
 
             var parameterDeclarations = Enumerable.ToArray(connections.Keys);
             foreach (var parameterDeclaration in parameterDeclarations)
@@ -107,6 +101,44 @@ namespace DisposePlugin.Services.Local
                         data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
                 }
             }
+        }
+
+        private static void CalculateConnectionOfDisposableVariables(IInvocationExpression invocationExpression,
+            ControlFlowElementData data, List<IVariableDeclaration> thisConnections,
+            Dictionary<IRegularParameterDeclaration, IVariableDeclaration> connections)
+        {
+            foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
+            {
+                var cSharpArgument = argument as ICSharpArgument;
+                if (cSharpArgument == null)
+                    continue;
+                var argumentExpression = cSharpArgument.Value;
+                IRegularParameterDeclaration matchingVarDecl;
+                if (argumentExpression is IThisExpression && data.ThisStatus != null)
+                {
+                    if (GetMatchingParameterDeclaration(argument, out matchingVarDecl))
+                        continue;
+                    thisConnections.Add(matchingVarDecl);
+                    continue;
+                }
+                var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForReferenceExpression(argumentExpression);
+                if (data[varDecl] != null) // Если переменную не рассматриваем.
+                {
+                    if (GetMatchingParameterDeclaration(argument, out matchingVarDecl))
+                        continue;
+                    connections.Add(matchingVarDecl, varDecl);
+                }
+            }
+        }
+
+        private static bool GetMatchingParameterDeclaration(ICSharpArgumentInfo argument,
+            out IRegularParameterDeclaration matchingVarDecl)
+        {
+            var matchingArgument = TreeNodeHandlerUtil.GetMatchingArgument(argument);
+            matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
+            if (matchingVarDecl == null)
+                return true;
+            return false;
         }
 
         private static MethodArgumentStatus GetArgumentStatusForParameterDeclaration(

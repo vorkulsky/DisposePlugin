@@ -18,6 +18,7 @@ namespace DisposePlugin.Services.Invoking
         {
             _disposableInterface = disposableInterface;
         }
+
         public void ProcessTreeNode(ITreeNode treeNode, ControlFlowElementData data)
         {
             if (treeNode is IInvocationExpression)
@@ -29,19 +30,71 @@ namespace DisposePlugin.Services.Invoking
         private void ProcessInvocationExpression([NotNull] IInvocationExpression invocationExpression,
             ControlFlowElementData data)
         {
-            var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invocationExpression);
-            if (data[qualifierVariableDeclaration] != null && TreeNodeHandlerUtil.IsSimpleDisposeInvocation(invocationExpression))
-            {
-                data[qualifierVariableDeclaration] = VariableDisposeStatus.Disposed;
+            var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
+            if (invokedExpression == null)
                 return;
-            }
-            ProcessSimpleInvocation(invocationExpression, qualifierVariableDeclaration, data);
+            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression, _disposableInterface);
+            var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invokedExpression);
+            var qualifierDisposableVariableDeclaration = data[qualifierVariableDeclaration] != null
+                ? qualifierVariableDeclaration : null;
+
+            if (TreeNodeHandlerUtil.CheckOnDisposeInvocation(invocationExpression, data, isInvocationOnDisposableThis,
+                qualifierDisposableVariableDeclaration))
+                return;
+
+            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration, isInvocationOnDisposableThis);
         }
 
-        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
-            [CanBeNull] IVariableDeclaration qualifierVariableDeclaration, ControlFlowElementData data)
+        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression, ControlFlowElementData data,
+            [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis)
         {
             var positions = new Dictionary<IVariableDeclaration, byte>();
+            var thisPositions = new List<byte>();
+            CalculatePositionOfDisposableVariables(invocationExpression, data, thisPositions, positions);
+
+            if (!positions.Any() && !thisPositions.Any() && qualifierDisposableVariableDeclaration == null && !isInvocationOnDisposableThis)
+                return;
+
+            var referenceExpression = invocationExpression.InvokedExpression as IReferenceExpression;
+            if (referenceExpression == null)
+                return;
+            var name = referenceExpression.NameIdentifier.Name;
+            var offset = invocationExpression.InvokedExpression.GetNavigationRange().TextRange.StartOffset;
+            var sourceFile = invocationExpression.GetSourceFile();
+
+            foreach (var position in positions)
+                SaveInvocationData(data, position.Key, position.Value, name, offset, sourceFile);
+
+            //this в качестве аргумента
+            if (thisPositions.Any())
+                data.ThisStatus = VariableDisposeStatus.DependsOnInvocation;
+            foreach (var position in thisPositions)
+            {
+                var invokedMethod = new InvokedMethod(name, offset, position, sourceFile);
+                data.ThisInvokedMethods.Add(invokedMethod);
+            }
+
+            //обработка qualifierVariableDeclaration, в том числе this
+            if (qualifierDisposableVariableDeclaration != null)
+                SaveInvocationData(data, qualifierDisposableVariableDeclaration, 0, name, offset, sourceFile);
+            else if (isInvocationOnDisposableThis)
+            {
+                var invokedMethod = new InvokedMethod(name, offset, 0, sourceFile);
+                data.ThisInvokedMethods.Add(invokedMethod);
+            }
+        }
+
+        private static void SaveInvocationData(ControlFlowElementData data, IVariableDeclaration variable,
+            byte position, string name, int offset, IPsiSourceFile sourceFile)
+        {
+            data[variable] = VariableDisposeStatus.DependsOnInvocation;
+            var invokedMethod = new InvokedMethod(name, offset, position, sourceFile);
+            data.InvokedMethods.Add(variable, invokedMethod);
+        }
+
+        private static void CalculatePositionOfDisposableVariables(IInvocationExpression invocationExpression,
+            ControlFlowElementData data, List<byte> thisPositions, Dictionary<IVariableDeclaration, byte> positions)
+        {
             byte i = 0;
             foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
             {
@@ -50,28 +103,15 @@ namespace DisposePlugin.Services.Invoking
                 if (cSharpArgument == null)
                     continue;
                 var argumentExpression = cSharpArgument.Value;
-                var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForExpression(argumentExpression);
-                if (varDecl == null) // Если переменную не рассматриваем.
+
+                if (argumentExpression is IThisExpression && data.ThisStatus != null)
+                {
+                    thisPositions.Add(i);
                     continue;
-                if (data[varDecl] == null)
-                    continue;
-                positions.Add(varDecl, i);
-            }
-
-            if (!positions.Any() && qualifierVariableDeclaration == null)
-                return;
-
-            var referenceExpression = invocationExpression.InvokedExpression as IReferenceExpression;
-            if (referenceExpression == null)
-                return;
-            var name = referenceExpression.NameIdentifier.Name;
-            var offset = invocationExpression.InvokedExpression.GetNavigationRange().TextRange.StartOffset;
-
-            foreach (var position in positions)
-            {
-                data[position.Key] = VariableDisposeStatus.DependsOnInvocation;
-                var invokedMethod = new InvokedMethod(name, offset, position.Value, position.Key.GetSourceFile());
-                data.InvokedMethods.Add(position.Key, invokedMethod);
+                }
+                var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForReferenceExpression(argumentExpression);
+                if (data[varDecl] != null) // Т.е. если переменную не рассматриваем.
+                    positions.Add(varDecl, i);
             }
         }
     }

@@ -1,4 +1,6 @@
 ﻿using System.Linq;
+using DisposePlugin.Services;
+using DisposePlugin.Util;
 using JetBrains.Annotations;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
@@ -11,19 +13,35 @@ namespace DisposePlugin.src.Util
     public static class TreeNodeHandlerUtil
     {
         [CanBeNull]
-        public static IVariableDeclaration GetQualifierVariableDeclaration([NotNull] IInvocationExpression invocationExpression)
+        public static IVariableDeclaration GetQualifierVariableDeclaration([NotNull] IReferenceExpression invokedExpression)
         {
-            var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
-            if (invokedExpression == null)
-                return null;
             var qualifierExpression = invokedExpression.QualifierExpression;
             if (qualifierExpression == null || qualifierExpression is IThisExpression)
-                return null; //TODO: this
-            return GetVariableDeclarationForExpression(qualifierExpression);
+                return null;
+            return GetVariableDeclarationForReferenceExpression(qualifierExpression);
+        }
+
+        public static bool IsInvocationOnDisposableThis([NotNull] IReferenceExpression invokedExpression, [NotNull] ITypeElement disposableInterface)
+        {
+            var qualifierExpression = invokedExpression.QualifierExpression;
+            if (qualifierExpression == null || qualifierExpression is IThisExpression)
+                return IsContainingTypeDisposable(invokedExpression, disposableInterface);
+            return false;
+        }
+
+        public static bool IsContainingTypeDisposable([NotNull] ICSharpTreeNode node, [NotNull] ITypeElement disposableInterface)
+        {
+            var containingTypeDeclaration = node.GetContainingTypeDeclaration();
+            var declaredElement = containingTypeDeclaration.DeclaredElement;
+            if (declaredElement == null)
+                return false;
+            if (DisposeUtil.HasDisposable(declaredElement, disposableInterface))
+                return true;
+            return false;
         }
 
         [CanBeNull]
-        public static IVariableDeclaration GetVariableDeclarationForExpression([NotNull] ICSharpExpression expression)
+        public static IVariableDeclaration GetVariableDeclarationForReferenceExpression([NotNull] ICSharpExpression expression)
         {
             var referenceExpression = expression as IReferenceExpression;
             if (referenceExpression == null)
@@ -98,6 +116,28 @@ namespace DisposePlugin.src.Util
             if (parent == null)
                 return null;
             return GoUpToNodeWithType<T>(parent);
+        }
+
+        public static bool CheckOnDisposeInvocation(IInvocationExpression invocationExpression, ControlFlowElementData data,
+            bool isInvocationOnDisposableThis, IVariableDeclaration qualifierDisposableVariableDeclaration)
+        {
+            if (isInvocationOnDisposableThis)
+            {
+                if (IsSimpleDisposeInvocation(invocationExpression))
+                {
+                    data.ThisStatus = VariableDisposeStatus.Disposed;
+                    return true;
+                }
+            }
+            else
+            {
+                if (qualifierDisposableVariableDeclaration != null && IsSimpleDisposeInvocation(invocationExpression))
+                {
+                    data[qualifierDisposableVariableDeclaration] = VariableDisposeStatus.Disposed;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
