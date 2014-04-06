@@ -81,8 +81,6 @@ namespace DisposePlugin.Services.Local
                 return;
 
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
-            if (methodStatus == null)
-                return; //TODO пересчет хэша
 
             //TODO this в качестве аргумента
             //TODO обработка qualifierVariableDeclaration, в том числе this
@@ -169,6 +167,16 @@ namespace DisposePlugin.Services.Local
             if (invokedFunctionSourceFile == null)
                 return null;
             var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionSourceFile, offset);
+            if (methodStatus == null) // Принудительно пересчитываем кэш
+            {
+                var sourceFile = invocationExpression.GetSourceFile();
+                if (DisposeCache.Accepts(invocationExpression.GetSourceFile()))
+                {
+                    var builtPart = cache.Build(sourceFile, false);
+                    cache.Merge(sourceFile, builtPart);
+                    methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionSourceFile, offset);
+                }
+            }
             return methodStatus;
         }
 
@@ -196,7 +204,7 @@ namespace DisposePlugin.Services.Local
                 return false;
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
-                return false; //TODO пересчет хэша
+                return false;
             var argumentStatus = GetArgumentStatusForParameterDeclaration(matchingVarDecl, methodStatus);
             if (argumentStatus == null)
                 return false;

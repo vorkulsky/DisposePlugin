@@ -178,7 +178,7 @@ namespace DisposePlugin.Cache
             get { return !_dirtyFiles.IsEmpty(); }
         }
 
-        private static bool Accepts(IPsiSourceFile sourceFile)
+        public static bool Accepts(IPsiSourceFile sourceFile)
         {
             return sourceFile.IsLanguageSupported<CSharpLanguage>();
         }
