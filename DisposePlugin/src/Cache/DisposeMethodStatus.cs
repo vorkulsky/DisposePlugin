@@ -69,9 +69,9 @@ namespace DisposePlugin.Cache
         private readonly IPsiSourceFile _psiSourceFile;
         private byte _number; // Для this равен 0
         private VariableDisposeStatus _status;
-        private IList<InvokedExpression> _invokedExpressions;
+        private IList<InvokedExpressionData> _invokedExpressions;
 
-        public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedExpression> invokedExpressions, IPsiSourceFile psiSourceFile)
+        public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedExpressionData> invokedExpressions, IPsiSourceFile psiSourceFile)
         {
             _number = number;
             _status = status;
@@ -95,7 +95,7 @@ namespace DisposePlugin.Cache
             get { return _status; }
         }
 
-        public IList<InvokedExpression> InvokedExpressions
+        public IList<InvokedExpressionData> InvokedExpressions
         {
             get { return _invokedExpressions; }
         }
@@ -115,25 +115,25 @@ namespace DisposePlugin.Cache
             var number = reader.ReadByte();
             var status = (VariableDisposeStatus) Enum.Parse(typeof(VariableDisposeStatus), reader.ReadString());
             var count = reader.ReadInt32();
-            var invokedExpressions = new List<InvokedExpression>(count);
+            var invokedExpressions = new List<InvokedExpressionData>(count);
             for (var i = 0; i < count; i++)
-                invokedExpressions.Add(InvokedExpression.Read(reader, psiSourceFile));
+                invokedExpressions.Add(InvokedExpressionData.Read(reader, psiSourceFile));
             return new MethodArgumentStatus(number, status, invokedExpressions, psiSourceFile);
         }
     }
 
-    public class InvokedExpression
+    public class InvokedExpressionData
     {
         private readonly IPsiSourceFile _psiSourceFile;
         // Имя вызываемого метода
         private string _name;
-        // Offset вызова метода
+        // Offset выражения вызова
         private int _offset;
         // Номер аргумента в выражении вызова метода
         // Для объекта, на котором вызывают, равен 0
         private byte _argumentPosition;
 
-        public InvokedExpression(string name, int offset, byte argumentPosition, IPsiSourceFile psiSourceFile)
+        public InvokedExpressionData(string name, int offset, byte argumentPosition, IPsiSourceFile psiSourceFile)
         {
             _name = name;
             _offset = offset;
@@ -141,7 +141,7 @@ namespace DisposePlugin.Cache
             _psiSourceFile = psiSourceFile;
         }
 
-        #region InvokedExpression Members
+        #region InvokedExpressionData Members
         public IPsiSourceFile PsiSourceFile
         {
             get { return _psiSourceFile; }
@@ -160,7 +160,7 @@ namespace DisposePlugin.Cache
         {
             get { return _argumentPosition; }
         }
-        #endregion InvokedExpression Members
+        #endregion InvokedExpressionData Members
 
         public void Write(BinaryWriter writer)
         {
@@ -169,12 +169,12 @@ namespace DisposePlugin.Cache
             writer.Write(ArgumentPosition);
         }
 
-        public static InvokedExpression Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
+        public static InvokedExpressionData Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
         {
             var name = reader.ReadString();
             var offset = reader.ReadInt32();
             var argumentPosition = reader.ReadByte();
-            return new InvokedExpression(name, offset, argumentPosition, psiSourceFile);
+            return new InvokedExpressionData(name, offset, argumentPosition, psiSourceFile);
         }
     }
 }

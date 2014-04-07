@@ -18,9 +18,9 @@ namespace DisposePlugin.Services
     public class ControlFlowElementData
     {
         private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
-        public OneToListMap<IVariableDeclaration, InvokedExpression> InvokedExpressions = new OneToListMap<IVariableDeclaration, InvokedExpression>();
+        public OneToListMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions = new OneToListMap<IVariableDeclaration, InvokedExpressionData>();
         public VariableDisposeStatus? ThisStatus;
-        public IList<InvokedExpression> ThisInvokedExpressions = new List<InvokedExpression>();
+        public IList<InvokedExpressionData> ThisInvokedExpressions = new List<InvokedExpressionData>();
         private bool _visited; // = false
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status

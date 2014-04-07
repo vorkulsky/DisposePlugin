@@ -70,7 +70,7 @@ namespace DisposePlugin.Services.Invoking
                 data.ThisStatus = VariableDisposeStatus.DependsOnInvocation;
             foreach (var position in thisPositions)
             {
-                var invokedExpression = new InvokedExpression(name, offset, position, sourceFile);
+                var invokedExpression = new InvokedExpressionData(name, offset, position, sourceFile);
                 data.ThisInvokedExpressions.Add(invokedExpression);
             }
 
@@ -79,7 +79,7 @@ namespace DisposePlugin.Services.Invoking
                 SaveInvocationData(data, qualifierDisposableVariableDeclaration, 0, name, offset, sourceFile);
             else if (isInvocationOnDisposableThis)
             {
-                var invokedExpression = new InvokedExpression(name, offset, 0, sourceFile);
+                var invokedExpression = new InvokedExpressionData(name, offset, 0, sourceFile);
                 data.ThisInvokedExpressions.Add(invokedExpression);
             }
         }
@@ -88,12 +88,12 @@ namespace DisposePlugin.Services.Invoking
             byte position, string name, int offset, IPsiSourceFile sourceFile)
         {
             data[variable] = VariableDisposeStatus.DependsOnInvocation;
-            var invokedExpression = new InvokedExpression(name, offset, position, sourceFile);
+            var invokedExpression = new InvokedExpressionData(name, offset, position, sourceFile);
             data.InvokedExpressions.Add(variable, invokedExpression);
         }
 
         private static void CalculatePositionOfDisposableVariables(IInvocationExpression invocationExpression,
-            ControlFlowElementData data, List<byte> thisPositions, Dictionary<IVariableDeclaration, byte> positions)
+            ControlFlowElementData data, List<byte> thisPositions, IDictionary<IVariableDeclaration, byte> positions)
         {
             byte i = 0;
             foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
@@ -110,7 +110,7 @@ namespace DisposePlugin.Services.Invoking
                     continue;
                 }
                 var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForReferenceExpression(argumentExpression);
-                if (data[varDecl] != null) // Т.е. если переменную не рассматриваем.
+                if (varDecl != null && data[varDecl] != null) // Т.е. если переменную не рассматриваем.
                     positions.Add(varDecl, i);
             }
         }

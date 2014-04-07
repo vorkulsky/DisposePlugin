@@ -126,7 +126,7 @@ namespace DisposePlugin.Services
         private bool UpdateInvokedExpressions([NotNull] ControlFlowElementData data, ICollection<ControlFlowElementData> previousElems)
         {
             var changesAre = false;
-            var invokedExpressionsResult = new OneToListMap<IVariableDeclaration, InvokedExpression>();
+            var invokedExpressionsResult = new OneToListMap<IVariableDeclaration, InvokedExpressionData>();
             foreach (var kvp in data.InvokedExpressions)
             {
                 var invokedExpressionSet = GetPreviousElemsInvokedExpressionSet(previousElems, kvp.Key);
@@ -154,14 +154,14 @@ namespace DisposePlugin.Services
             return changesAre;
         }
 
-        private JetHashSet<InvokedExpression> GetPreviousElemsInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems,
+        private JetHashSet<InvokedExpressionData> GetPreviousElemsInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems,
             IVariableDeclaration variable)
         {
             return previousElems.SelectMany(previousElementData => previousElementData.InvokedExpressions)
                 .Where(kvp => kvp.Key == variable).SelectMany(kvp => kvp.Value).ToHashSet();
         }
 
-        private JetHashSet<InvokedExpression> GetPreviousElemsThisInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems)
+        private JetHashSet<InvokedExpressionData> GetPreviousElemsThisInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems)
         {
             return previousElems.SelectMany(previousElementData => previousElementData.ThisInvokedExpressions).ToHashSet();
         }

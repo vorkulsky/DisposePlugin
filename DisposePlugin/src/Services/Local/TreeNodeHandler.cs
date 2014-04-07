@@ -74,7 +74,7 @@ namespace DisposePlugin.Services.Local
             [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis, int level)
         {
             var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
-            var thisConnections = new List<IVariableDeclaration>();
+            var thisConnections = new List<IRegularParameterDeclaration>();
             CalculateConnectionOfDisposableVariables(invocationExpression, data, thisConnections, connections);
 
             if (!connections.Any() && !thisConnections.Any() && qualifierDisposableVariableDeclaration == null && !isInvocationOnDisposableThis)
@@ -82,27 +82,85 @@ namespace DisposePlugin.Services.Local
 
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
 
-            //TODO this в качестве аргумента
-            //TODO обработка qualifierVariableDeclaration, в том числе this
-
             var parameterDeclarations = Enumerable.ToArray(connections.Keys);
             foreach (var parameterDeclaration in parameterDeclarations)
             {
                 var argumentStatus = GetArgumentStatusForParameterDeclaration(parameterDeclaration, methodStatus);
                 if (argumentStatus == null)
                     continue;
-                if (argumentStatus.Status == VariableDisposeStatus.Disposed)
-                    data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
-                if (argumentStatus.Status == VariableDisposeStatus.DependsOnInvocation)
+                switch (argumentStatus.Status)
                 {
-                    if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
+                    case VariableDisposeStatus.Disposed:
                         data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
+                        break;
+                    case VariableDisposeStatus.DependsOnInvocation:
+                        if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
+                            data[connections[parameterDeclaration]] = VariableDisposeStatus.Disposed;
+                        break;
+                }
+            }
+
+            //this в качестве аргумента
+            var thisParameterDeclarations = Enumerable.ToArray(connections.Keys);
+            foreach (var parameterDeclaration in thisParameterDeclarations)
+            {
+                var argumentStatus = GetArgumentStatusForParameterDeclaration(parameterDeclaration, methodStatus);
+                if (argumentStatus == null)
+                    continue;
+                switch (argumentStatus.Status)
+                {
+                    case VariableDisposeStatus.Disposed:
+                        data.ThisStatus = VariableDisposeStatus.Disposed;
+                        break;
+                    case VariableDisposeStatus.DependsOnInvocation:
+                        if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
+                            data.ThisStatus = VariableDisposeStatus.Disposed;
+                        break;
+                }
+            }
+
+            //обработка qualifierVariableDeclaration, в том числе this
+            if (qualifierDisposableVariableDeclaration != null)
+            {
+                var argumentStatus = GetArgumentStatusByNumber(methodStatus, 0);
+                /*TODO: нужно ли перестраивать кэш, если аргумента с нужным номером нет, и что тогда делать?
+                Может быть, вести спиок файлов, для которых принудительно перестроен кэш. И перестраивать кэш для файла не более
+                одного раза в том случае, если в кэше отсутствует что-то.*/
+                if (argumentStatus != null)
+                {
+                    switch (argumentStatus.Status)
+                    {
+                        case VariableDisposeStatus.Disposed:
+                            data[qualifierDisposableVariableDeclaration] = VariableDisposeStatus.Disposed;
+                            break;
+                        case VariableDisposeStatus.DependsOnInvocation:
+                            if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
+                                data[qualifierDisposableVariableDeclaration] = VariableDisposeStatus.Disposed;
+                            break;
+                    }
+                }
+            }
+            else if (isInvocationOnDisposableThis)
+            {
+                var argumentStatus = GetArgumentStatusByNumber(methodStatus, 0);
+                if (argumentStatus != null)
+                {
+                    switch (argumentStatus.Status)
+                    {
+                        case VariableDisposeStatus.Disposed:
+                            data.ThisStatus = VariableDisposeStatus.Disposed;
+                            break;
+                        case VariableDisposeStatus.DependsOnInvocation:
+                            if (AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level))
+                                data.ThisStatus = VariableDisposeStatus.Disposed;
+                            break;
+                    }
                 }
             }
         }
 
         private static void CalculateConnectionOfDisposableVariables(IInvocationExpression invocationExpression,
-            ControlFlowElementData data, List<IVariableDeclaration> thisConnections,
+            ControlFlowElementData data, List<IRegularParameterDeclaration> thisConnections,
             Dictionary<IRegularParameterDeclaration, IVariableDeclaration> connections)
         {
             foreach (var argument in invocationExpression.InvocationExpressionReference.Invocation.Arguments)
@@ -145,8 +203,13 @@ namespace DisposePlugin.Services.Local
             var number = TreeNodeHandlerUtil.GetNumberOfParameter(parameterDeclaration);
             if (number == null)
                 return null;
-            var argumentStatus = methodStatus.MethodArguments.Where(a => a.Number == number).Select(a => a).FirstOrDefault();
+            var argumentStatus = GetArgumentStatusByNumber(methodStatus, number.Value);
             return argumentStatus;
+        }
+
+        private static MethodArgumentStatus GetArgumentStatusByNumber(DisposeMethodStatus methodStatus, int number)
+        {
+            return methodStatus.MethodArguments.Where(a => a.Number == number).Select(a => a).FirstOrDefault();
         }
 
         private static DisposeMethodStatus GetStatusForInvocationExpressionFromCache(IInvocationExpression invocationExpression)
@@ -157,16 +220,16 @@ namespace DisposePlugin.Services.Local
             var invokedDeclaration = invokedDeclaredElement.GetDeclarations().FirstOrDefault();
             if (invokedDeclaration == null)
                 return null;
-            var invokedFunctionDeclaration = invokedDeclaration as ICSharpFunctionDeclaration;
-            if (invokedFunctionDeclaration == null)
+            var invokedMethodDeclaration = invokedDeclaration as ICSharpFunctionDeclaration;
+            if (invokedMethodDeclaration == null)
                 return null;
 
-            var offset = invokedFunctionDeclaration.GetNavigationRange().TextRange.StartOffset;
-            var cache = invokedFunctionDeclaration.GetPsiServices().Solution.GetComponent<DisposeCache>();
-            var invokedFunctionSourceFile = invokedFunctionDeclaration.GetSourceFile();
-            if (invokedFunctionSourceFile == null)
+            var offset = invokedMethodDeclaration.GetNavigationRange().TextRange.StartOffset;
+            var cache = invokedMethodDeclaration.GetPsiServices().Solution.GetComponent<DisposeCache>();
+            var invokedMethodSourceFile = invokedMethodDeclaration.GetSourceFile();
+            if (invokedMethodSourceFile == null)
                 return null;
-            var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionSourceFile, offset);
+            var methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedMethodSourceFile, offset);
             if (methodStatus == null) // Принудительно пересчитываем кэш
             {
                 var sourceFile = invocationExpression.GetSourceFile();
@@ -174,55 +237,76 @@ namespace DisposePlugin.Services.Local
                 {
                     var builtPart = cache.Build(sourceFile, false);
                     cache.Merge(sourceFile, builtPart);
-                    methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedFunctionSourceFile, offset);
+                    methodStatus = cache.GetDisposeMethodStatusesForMethod(invokedMethodSourceFile, offset);
                 }
             }
             return methodStatus;
         }
 
-        private bool ProcessInvocationRecursively([NotNull] InvokedExpression invokedExpression, int level)
+        private bool ProcessInvocationRecursively([NotNull] InvokedExpressionData invokedExpressionData, int level)
         {
-            var sourceFile = invokedExpression.PsiSourceFile;
-            if (sourceFile == null) // Такого не должно случиться.
-                return false;
-            var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
-            if (file == null)
-                return false;
-            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedExpression.Offset), 1));
-            if (elem == null)
-                return false;
-            var invocationExpression = TreeNodeHandlerUtil.GoUpToNodeWithType<IInvocationExpression>(elem);
+            var invocationExpression = GetExpressionByInvokedExpressionData(invokedExpressionData);
             if (invocationExpression == null)
-                return false;
-            var arguments = invocationExpression.InvocationExpressionReference.Invocation.Arguments;
-            if (arguments.Count < invokedExpression.ArgumentPosition)
-                return false;
-            var argument = arguments.ElementAt(invokedExpression.ArgumentPosition - 1);
-            var matchingArgument = TreeNodeHandlerUtil.GetMatchingArgument(argument);
-            var matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
-            if (matchingVarDecl == null)
                 return false;
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
                 return false;
-            var argumentStatus = GetArgumentStatusForParameterDeclaration(matchingVarDecl, methodStatus);
+            // SimpleDisposeInvocation здесь не может, т.к. в этом случае статус не был бы DependsOnInvocation
+            var argumentStatus = invokedExpressionData.ArgumentPosition == 0 
+                ? GetArgumentStatusByNumber(methodStatus, 0)
+                : GetMethodArgumentStatusByInvokedExpressionData(invokedExpressionData, invocationExpression, methodStatus);
             if (argumentStatus == null)
                 return false;
-            if (argumentStatus.Status == VariableDisposeStatus.Disposed)
-                return true;
-            if (argumentStatus.Status == VariableDisposeStatus.DependsOnInvocation)
+            switch (argumentStatus.Status)
             {
-                return AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level);
+                case VariableDisposeStatus.Disposed:
+                    return true;
+                case VariableDisposeStatus.DependsOnInvocation:
+                    return AnyoneInvokedExpressionDispose(argumentStatus.InvokedExpressions, level);
+                default:
+                    return false;
             }
-            return false;
         }
 
-        private bool AnyoneInvokedExpressionDispose(ICollection<InvokedExpression> invokedExpressions, int level)
+        [CanBeNull]
+        private static MethodArgumentStatus GetMethodArgumentStatusByInvokedExpressionData(
+            [NotNull] InvokedExpressionData invokedExpressionData, [NotNull] IInvocationExpression invocationExpression,
+            [NotNull] DisposeMethodStatus methodStatus)
+        {
+            var arguments = invocationExpression.InvocationExpressionReference.Invocation.Arguments;
+            if (arguments.Count < invokedExpressionData.ArgumentPosition)
+                return null;
+            var argument = arguments.ElementAt(invokedExpressionData.ArgumentPosition - 1);
+            var matchingArgument = TreeNodeHandlerUtil.GetMatchingArgument(argument);
+            var matchingVarDecl = matchingArgument as IRegularParameterDeclaration;
+            if (matchingVarDecl == null)
+                return null;
+            var argumentStatus = GetArgumentStatusForParameterDeclaration(matchingVarDecl, methodStatus);
+            return argumentStatus;
+        }
+
+        [CanBeNull]
+        private static IInvocationExpression GetExpressionByInvokedExpressionData(InvokedExpressionData invokedExpressionData)
+        {
+            var sourceFile = invokedExpressionData.PsiSourceFile;
+            if (sourceFile == null) // Такого не должно случиться.
+                return null;
+            var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
+            if (file == null)
+                return null;
+            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedExpressionData.Offset), 1));
+            if (elem == null)
+                return null;
+            var invocationExpression = TreeNodeHandlerUtil.GoUpToNodeWithType<IInvocationExpression>(elem);
+            return invocationExpression;
+        }
+
+        private bool AnyoneInvokedExpressionDispose(ICollection<InvokedExpressionData> invokedExpressions, int level)
         {
             if (invokedExpressions.Count == 0)
                 return false;
             if (level != _maxLevel)
-                return invokedExpressions.Any(invokedExpression => ProcessInvocationRecursively(invokedExpression, level));
+                return invokedExpressions.Any(invokedExpression => ProcessInvocationRecursively(invokedExpression, level + 1));
             return false;
         }
     }

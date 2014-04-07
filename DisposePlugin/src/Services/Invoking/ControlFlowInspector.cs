@@ -46,7 +46,7 @@ namespace DisposePlugin.Services.Invoking
         private IList<MethodArgumentStatus> CalculateArgumentStatuses()
         {
             var argumentStatuses = new List<MethodArgumentStatus>();
-            var allInvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpression>();
+            var allInvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
             var allStatuses = new OneToSetMap<IVariableDeclaration, VariableDisposeStatus>();
             DoForEachExit(data =>
                 {
@@ -60,7 +60,7 @@ namespace DisposePlugin.Services.Invoking
 
             if (_processThis)
             {
-                var allThisInvokedExpressions = new HashSet<InvokedExpression>();
+                var allThisInvokedExpressions = new HashSet<InvokedExpressionData>();
                 var allThisStatuses = new HashSet<VariableDisposeStatus>();
                 DoForEachExit(data =>
                     {
