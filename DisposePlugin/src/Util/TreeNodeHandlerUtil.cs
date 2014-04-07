@@ -100,7 +100,14 @@ namespace DisposePlugin.src.Util
             if (formalParameterList == null)
                 return null;
             var parameterDeclarations = formalParameterList.ParameterDeclarations;
-            var index = parameterDeclarations.Where(p => p == parameterDeclaration).Select((p, i) => i + 1).FirstOrDefault();
+            var index = 0;
+            for (var i = 0; i < parameterDeclarations.Count; i++)
+            {
+                if (parameterDeclarations[i] != parameterDeclaration)
+                    continue;
+                index = i + 1;
+                break;
+            }
             if (index == 0)
                 return null;
             return index;
