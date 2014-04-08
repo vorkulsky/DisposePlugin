@@ -32,7 +32,7 @@ namespace DisposePlugin.CodeInspections
             //FindInfoByExpression
             //FindVariableInfo
 
-            const int maxLevel = 2;
+            const int maxLevel = 10;
 
             var grafInspector = new ControlFlowInspector(element, graf, maxLevel, disposableInterface);
             var highlightings = grafInspector.Inspect();

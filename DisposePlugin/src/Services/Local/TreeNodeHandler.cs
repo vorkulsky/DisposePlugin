@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using DisposePlugin.Cache;
 using DisposePlugin.src.Util;
@@ -81,6 +82,11 @@ namespace DisposePlugin.Services.Local
                 return;
 
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
+            if (methodStatus == null)
+            {
+                Debug.Fail("methodStatus == null");
+                return;
+            }
 
             var parameterDeclarations = Enumerable.ToArray(connections.Keys);
             foreach (var parameterDeclaration in parameterDeclarations)
@@ -212,6 +218,7 @@ namespace DisposePlugin.Services.Local
             return methodStatus.MethodArguments.Where(a => a.Number == number).Select(a => a).FirstOrDefault();
         }
 
+        [CanBeNull]
         private static DisposeMethodStatus GetStatusForInvocationExpressionFromCache(IInvocationExpression invocationExpression)
         {
             var invokedDeclaredElement = invocationExpression.InvocationExpressionReference.Resolve().DeclaredElement;
@@ -250,7 +257,10 @@ namespace DisposePlugin.Services.Local
                 return false;
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
+            {
+                Debug.Fail("methodStatus == null");
                 return false;
+            }
             // SimpleDisposeInvocation здесь не может, т.к. в этом случае статус не был бы DependsOnInvocation
             var argumentStatus = invokedExpressionData.ArgumentPosition == 0 
                 ? GetArgumentStatusByNumber(methodStatus, 0)

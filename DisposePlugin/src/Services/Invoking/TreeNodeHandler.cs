@@ -79,6 +79,7 @@ namespace DisposePlugin.Services.Invoking
                 SaveInvocationData(data, qualifierDisposableVariableDeclaration, 0, name, offset, sourceFile);
             else if (isInvocationOnDisposableThis)
             {
+                data.ThisStatus = VariableDisposeStatus.DependsOnInvocation;
                 var invokedExpression = new InvokedExpressionData(name, offset, 0, sourceFile);
                 data.ThisInvokedExpressions.Add(invokedExpression);
             }

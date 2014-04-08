@@ -62,7 +62,7 @@ namespace DisposePlugin.Services
             }
             var currentData = this[currentElement];
             Boolean changesAre;
-            var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
+            var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).WhereNotNull().ToArray();
             var newTargetData = ProcessUnknown(currentData ?? previousData.Clone(), previousElems, out changesAre);
             changesAre = changesAre || UpdateInvokedExpressions(newTargetData, previousElems);
             this[currentElement] = newTargetData;
