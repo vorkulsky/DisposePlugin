@@ -40,7 +40,7 @@ namespace DisposePlugin.Cache
                 return;
 
             var name = functionDeclaration.DeclaredName;
-            var offset = functionDeclaration.GetNavigationRange().TextRange.StartOffset;
+            var offset = InvokedExpressionData.GetOffsetByNode(functionDeclaration);
 
             var grafInspector = new ControlFlowInspector(functionDeclaration, graf, disposableInterface);
             var methodArguments = grafInspector.GetMethodArgumentStatuses();

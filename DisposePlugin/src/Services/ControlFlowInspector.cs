@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Impl.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
+using JetBrains.Util;
 
 namespace DisposePlugin.Services
 {
@@ -38,7 +38,7 @@ namespace DisposePlugin.Services
             if (visitNew)
             {
                 var currentData = elementDataStorage[current];
-                Debug.Assert(currentData != null, "currentData != null");
+                Assertion.Assert(currentData != null, "currentData != null");
                 if (!currentData.IsVisited())
                 {
                     currentData.Visit();

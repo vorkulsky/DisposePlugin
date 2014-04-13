@@ -113,18 +113,6 @@ namespace DisposePlugin.src.Util
             return index;
         }
 
-        [CanBeNull]
-        public static T GoUpToNodeWithType<T>([NotNull] ITreeNode node) where T : class, ITreeNode
-        {
-            var typedNode = node as T;
-            if (typedNode != null)
-                return typedNode;
-            var parent = node.Parent;
-            if (parent == null)
-                return null;
-            return GoUpToNodeWithType<T>(parent);
-        }
-
         public static bool CheckOnDisposeInvocation(IInvocationExpression invocationExpression, ControlFlowElementData data,
             bool isInvocationOnDisposableThis, IVariableDeclaration qualifierDisposableVariableDeclaration)
         {

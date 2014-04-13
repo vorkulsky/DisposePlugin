@@ -83,10 +83,7 @@ namespace DisposePlugin.Services.Local
 
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
-            {
-                Debug.Fail("methodStatus == null");
                 return;
-            }
 
             var parameterDeclarations = Enumerable.ToArray(connections.Keys);
             foreach (var parameterDeclaration in parameterDeclarations)
@@ -231,7 +228,7 @@ namespace DisposePlugin.Services.Local
             if (invokedMethodDeclaration == null)
                 return null;
 
-            var offset = invokedMethodDeclaration.GetNavigationRange().TextRange.StartOffset;
+            var offset = InvokedExpressionData.GetOffsetByNode(invokedMethodDeclaration);
             var cache = invokedMethodDeclaration.GetPsiServices().Solution.GetComponent<DisposeCache>();
             var invokedMethodSourceFile = invokedMethodDeclaration.GetSourceFile();
             if (invokedMethodSourceFile == null)
@@ -257,10 +254,8 @@ namespace DisposePlugin.Services.Local
                 return false;
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
             if (methodStatus == null)
-            {
-                Debug.Fail("methodStatus == null");
                 return false;
-            }
+
             // SimpleDisposeInvocation здесь не может, т.к. в этом случае статус не был бы DependsOnInvocation
             var argumentStatus = invokedExpressionData.ArgumentPosition == 0 
                 ? GetArgumentStatusByNumber(methodStatus, 0)
@@ -299,16 +294,9 @@ namespace DisposePlugin.Services.Local
         private static IInvocationExpression GetExpressionByInvokedExpressionData(InvokedExpressionData invokedExpressionData)
         {
             var sourceFile = invokedExpressionData.PsiSourceFile;
-            if (sourceFile == null) // Такого не должно случиться.
+            if (sourceFile == null)
                 return null;
-            var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
-            if (file == null)
-                return null;
-            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(invokedExpressionData.Offset), 1));
-            if (elem == null)
-                return null;
-            var invocationExpression = TreeNodeHandlerUtil.GoUpToNodeWithType<IInvocationExpression>(elem);
-            return invocationExpression;
+            return InvokedExpressionData.GetNodeByOffset<IInvocationExpression>(sourceFile, invokedExpressionData.Offset);
         }
 
         private bool AnyoneInvokedExpressionDispose(ICollection<InvokedExpressionData> invokedExpressions, int level)

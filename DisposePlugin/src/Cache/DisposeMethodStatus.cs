@@ -2,7 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using DisposePlugin.Services;
+using JetBrains.Annotations;
+using JetBrains.DocumentModel;
 using JetBrains.ReSharper.Psi;
+using JetBrains.ReSharper.Psi.CSharp;
+using JetBrains.ReSharper.Psi.Files;
+using JetBrains.ReSharper.Psi.Tree;
 
 namespace DisposePlugin.Cache
 {
@@ -175,6 +180,40 @@ namespace DisposePlugin.Cache
             var offset = reader.ReadInt32();
             var argumentPosition = reader.ReadByte();
             return new InvokedExpressionData(name, offset, argumentPosition, psiSourceFile);
+        }
+
+        [CanBeNull]
+        public static T GetNodeByOffset<T>([NotNull] IPsiSourceFile sourceFile, int offset) where T : class, ITreeNode
+        {
+            var file = sourceFile.GetPsiFile<CSharpLanguage>(new DocumentRange(sourceFile.Document, 0));
+            if (file == null)
+                return null;
+            var elem = file.FindNodeAt(new TreeTextRange(new TreeOffset(offset), 1));
+            if (elem == null)
+                return null;
+            var typedNode = GoUpToNodeWithType<T>(elem);
+            return typedNode;
+        }
+
+        public static int GetOffsetByNode([NotNull] ITreeNode node)
+        {
+            var offset = node.GetNavigationRange().TextRange.StartOffset;
+            return offset;
+        }
+
+        [CanBeNull]
+        private static T GoUpToNodeWithType<T>([NotNull] ITreeNode node) where T : class, ITreeNode
+        {
+            while (true)
+            {
+                var typedNode = node as T;
+                if (typedNode != null)
+                    return typedNode;
+                var parent = node.Parent;
+                if (parent == null)
+                    return null;
+                node = parent;
+            }
         }
     }
 }

@@ -59,7 +59,7 @@ namespace DisposePlugin.Services.Invoking
             if (referenceExpression == null)
                 return;
             var name = referenceExpression.NameIdentifier.Name;
-            var offset = invocationExpression.InvokedExpression.GetNavigationRange().TextRange.StartOffset;
+            var offset = InvokedExpressionData.GetOffsetByNode(invocationExpression);
             var sourceFile = invocationExpression.GetSourceFile();
 
             foreach (var position in positions)

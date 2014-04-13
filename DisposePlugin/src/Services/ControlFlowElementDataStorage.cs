@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Diagnostics;
 using DisposePlugin.Cache;
 using JetBrains.Annotations;
 using System.Collections.Generic;
@@ -57,7 +56,7 @@ namespace DisposePlugin.Services
             var previousData = this[previousElement];
             if (previousData == null)
             {
-                Debug.Fail("previousData == null");
+                Assertion.Fail("previousData == null");
                 return false;
             }
             var currentData = this[currentElement];
