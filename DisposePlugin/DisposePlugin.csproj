@@ -56,9 +56,11 @@
     <Compile Include="src\Cache\DisposeCacheBuilder.cs" />
     <Compile Include="src\Cache\DisposeCacheSerializer.cs" />
     <Compile Include="src\Cache\DisposeMethodStatus.cs" />
+    <Compile Include="src\CodeInspections\DisposableFunctionDaemonStage.cs" />
+    <Compile Include="src\CodeInspections\DisposableFunctionDaemonStageProcess.cs" />
+    <Compile Include="src\CodeInspections\DisposableFunctionElementProcessor.cs" />
     <Compile Include="src\Services\ControlFlowElementData.cs" />
     <Compile Include="src\Services\ControlFlowInspector.cs" />
-    <Compile Include="src\CodeInspections\DisposableFunctionProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\DisposableClassProblemAnalyzer.cs" />
     <Compile Include="src\CodeInspections\Highlighting\LocalVariableNotDisposed.cs" />
     <Compile Include="src\CodeInspections\Highlighting\NotDisposableContainsDisposableField.cs" />
