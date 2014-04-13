@@ -14,10 +14,12 @@ namespace DisposePlugin.CodeInspections
     {
         private readonly List<HighlightingInfo> _highlightings = new List<HighlightingInfo>();
         private readonly IDaemonProcess _process;
+        private readonly int _maxLevel;
 
-        public DisposableFunctionElementProcessor(IDaemonProcess process)
+        public DisposableFunctionElementProcessor(IDaemonProcess process, int maxLevel)
         {
             _process = process;
+            _maxLevel = maxLevel;
         }
 
         public List<HighlightingInfo> Highlightings
@@ -55,9 +57,7 @@ namespace DisposePlugin.CodeInspections
             //FindInfoByExpression
             //FindVariableInfo
 
-            const int maxLevel = 10;
-
-            var grafInspector = new ControlFlowInspector(functionDeclaration, graf, maxLevel, disposableInterface);
+            var grafInspector = new ControlFlowInspector(functionDeclaration, graf, _maxLevel, disposableInterface);
             var highlightings = grafInspector.Inspect();
             _highlightings.AddRange(highlightings);
         }

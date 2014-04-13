@@ -1,16 +1,13 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using DisposePlugin.Cache;
 using DisposePlugin.src.Util;
 using DisposePlugin.Util;
 using JetBrains.Annotations;
-using JetBrains.DocumentModel;
 using JetBrains.ProjectModel;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
-using JetBrains.ReSharper.Psi.Files;
 using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.Util;
 

@@ -11,10 +11,12 @@ namespace DisposePlugin.CodeInspections
     public class DisposableFunctionDaemonStageProcess : IDaemonStageProcess
     {
         private readonly IDaemonProcess _daemonProcess;
+        private readonly int _maxLevel;
 
-        public DisposableFunctionDaemonStageProcess(IDaemonProcess daemonProcess)
+        public DisposableFunctionDaemonStageProcess(IDaemonProcess daemonProcess, int maxLevel)
         {
             _daemonProcess = daemonProcess;
+            _maxLevel = maxLevel;
         }
 
         public void Execute(Action<DaemonStageResult> committer)
@@ -25,7 +27,7 @@ namespace DisposePlugin.CodeInspections
                 return;
 
             // Running visitor against the PSI
-            var elementProcessor = new DisposableFunctionElementProcessor(_daemonProcess);
+            var elementProcessor = new DisposableFunctionElementProcessor(_daemonProcess, _maxLevel);
             file.ProcessDescendants(elementProcessor);
 
             // Checking if the daemon is interrupted by user activity

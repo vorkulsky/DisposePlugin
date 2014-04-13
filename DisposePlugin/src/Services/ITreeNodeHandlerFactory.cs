@@ -1,6 +1,4 @@
-﻿using JetBrains.ReSharper.Psi;
-
-namespace DisposePlugin.Services
+﻿namespace DisposePlugin.Services
 {
     public interface ITreeNodeHandlerFactory
     {
