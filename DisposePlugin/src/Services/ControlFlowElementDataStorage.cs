@@ -120,7 +120,7 @@ namespace DisposePlugin.Services
                 else
                 {
                     statusSet = new JetHashSet<VariableDisposeStatus> {status.Value};
-                    result.Add(status.Key, statusSet);
+                    result[status.Key] = statusSet;
                 }
             }
             var hasNotVisitedElements = previousElems.Count != previousWithoutNotVisitedElements.Count;
@@ -148,7 +148,7 @@ namespace DisposePlugin.Services
                     resultStatus = CombinePreviousAndCurrent(previousStatus, status.Value);
                 else
                     resultStatus = status.Value;
-                result.Add(status.Key, resultStatus);
+                result[status.Key] = resultStatus;
             }
             return result;
         }
@@ -191,7 +191,7 @@ namespace DisposePlugin.Services
             foreach (var statusSet in statusSetsDictionary)
             {
                 var uniteStatus = UniteStatus(statusSet.Value);
-                result.Add(statusSet.Key, uniteStatus);
+                result[statusSet.Key] = uniteStatus;
             }
             return result;
         }

@@ -112,7 +112,7 @@ namespace DisposePlugin.Services.Invoking
                 }
                 var varDecl = TreeNodeHandlerUtil.GetVariableDeclarationForReferenceExpression(argumentExpression);
                 if (varDecl != null && data[varDecl] != null) // Т.е. если переменную не рассматриваем.
-                    positions.Add(varDecl, i);
+                    positions[varDecl] = i;
             }
         }
     }

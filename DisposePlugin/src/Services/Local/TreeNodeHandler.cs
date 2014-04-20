@@ -181,7 +181,7 @@ namespace DisposePlugin.Services.Local
                 {
                     if (GetMatchingParameterDeclaration(argument, out matchingVarDecl))
                         continue;
-                    connections.Add(matchingVarDecl, varDecl);
+                    connections[matchingVarDecl] = varDecl;
                 }
             }
         }

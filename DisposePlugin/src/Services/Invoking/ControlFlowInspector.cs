@@ -54,7 +54,7 @@ namespace DisposePlugin.Services.Invoking
                     data.Status.ForEach(kvp => allStatuses.Add(kvp.Key, kvp.Value));
                 });
             var generalStatuses = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
-            allStatuses.ForEach(kvp => generalStatuses.Add(kvp.Key, GetGeneralStatus(kvp.Value)));
+            allStatuses.ForEach(kvp => generalStatuses[kvp.Key] = GetGeneralStatus(kvp.Value));
             _disposableArguments.ForEach(kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
                 allInvokedExpressions[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
 
@@ -135,7 +135,7 @@ namespace DisposePlugin.Services.Invoking
                     var regularParameterDeclaration = declaration as IRegularParameterDeclaration;
                     if (regularParameterDeclaration == null)
                         continue;
-                    disposableArguments.Add(regularParameterDeclaration, Convert.ToByte(i));
+                    disposableArguments[regularParameterDeclaration] = Convert.ToByte(i);
                 }
             }
             return disposableArguments;
