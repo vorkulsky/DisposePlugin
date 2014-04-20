@@ -21,7 +21,10 @@ namespace DisposePlugin.Services
         public OneToSetMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
         public VariableDisposeStatus? ThisStatus;
         public HashSet<InvokedExpressionData> ThisInvokedExpressions = new HashSet<InvokedExpressionData>();
+        // Содержит id вершин графа потока управления, в которые ведет несколько путей, не все из которых пройдены.
+        public HashSet<int> Crossroads = new HashSet<int>();
         private bool _visited = false;
+        private readonly int _id;
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
         {
@@ -51,6 +54,11 @@ namespace DisposePlugin.Services
 
         #endregion Indexers
 
+        public ControlFlowElementData(int id)
+        {
+            _id = id;
+        }
+
         public Boolean IsVisited()
         {
             return _visited;
@@ -59,6 +67,11 @@ namespace DisposePlugin.Services
         public void Visit()
         {
             _visited = true;
+        }
+
+        public int Id
+        {
+            get { return _id; }
         }
     }
 }

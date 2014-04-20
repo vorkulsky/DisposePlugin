@@ -59,9 +59,9 @@ namespace DisposePlugin.Services
                 return false;
             }
             var currentData = this[currentElement];
-            bool changesAre = false;
+            var changesAre = false;
             var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
-            var newTargetData = Update(currentData ?? new ControlFlowElementData(), previousElems, ref changesAre);
+            var newTargetData = Update(currentData ?? new ControlFlowElementData(currentElement.Id), previousElems, ref changesAre);
             this[currentElement] = newTargetData;
             return changesAre;
         }
@@ -72,15 +72,66 @@ namespace DisposePlugin.Services
         private ControlFlowElementData Update([NotNull] ControlFlowElementData data,
             ICollection<ControlFlowElementData> previousElems, ref bool changesAre)
         {
+            var hasCrossroads = UpdateCrossroads(data, previousElems, ref changesAre);
             var previousElemsStatusSetsDictionary = GetPreviousElemsStatusSetsList(previousElems);
-            var previousElemsUnionStatusDictionary = UniteStatuses(previousElemsStatusSetsDictionary);
+            var previousElemsUnionStatusDictionary = UniteStatuses(previousElemsStatusSetsDictionary, hasCrossroads);
             var resultStatusDictionary = CombinePreviousAndCurrent(previousElemsUnionStatusDictionary, data);
             var invokedExpressions = GetInvokedExpressions(previousElems, resultStatusDictionary, data.InvokedExpressions);
             Apply(data, ref changesAre, resultStatusDictionary, invokedExpressions);
-            var changesAreThis = UpdateThisStatus(previousElems, data);
+            var changesAreThis = UpdateThisStatus(previousElems, data, hasCrossroads);
             changesAre = changesAre || changesAreThis;
             return data;
         }
+
+        #region Crossroads
+
+        // Добавляет текущий элемент в список его перекрестков, если в него можно перейти из хотя бы одного предыдущего элемента,
+        // который еще не посещался.
+        // Убирает текущий элемент из списка его перекрестков, если если все его предыдущие элементы посещались.
+        // При любом изменении устанавливает changesAre в true.
+        // Возвращает, завивисит ли элемент хотя бы от одного перекрестка. Т.е. существует ли путь в текущий элемент, по которому
+        // мы еще не успели пройти.
+        private bool UpdateCrossroads(ControlFlowElementData data, ICollection<ControlFlowElementData> previousElems,
+            ref bool changesAre)
+        {
+            data.Crossroads = GetPreviousCrossroads(previousElems);
+            var isCrossroad = IsCrossroad(previousElems);
+            if (isCrossroad)
+            {
+                if (!data.Crossroads.Contains(data.Id))
+                {
+                    changesAre = true;
+                    data.Crossroads.Add(data.Id);
+                }
+            }
+            else
+            {
+                if (data.Crossroads.Contains(data.Id))
+                {
+                    changesAre = true;
+                    data.Crossroads.Remove(data.Id);
+                }
+            }
+            var hasCrossroads = data.Crossroads.Any();
+            return hasCrossroads;
+        }
+
+        // Возвращает список перекрестков всех предыдущих элементов.
+        private HashSet<int> GetPreviousCrossroads(IEnumerable<ControlFlowElementData> previousElems)
+        {
+            var result = new HashSet<int>();
+            foreach (var data in previousElems)
+                result.AddRange(data.Crossroads);
+            return result;
+        }
+
+        // Проверяет, является ли текущий элемент перекрестком для самого себя, т.е. посещались ли все его предыдущие элементы.
+        private bool IsCrossroad(IEnumerable<ControlFlowElementData> previousElems)
+        {
+            return (previousElems.Count(e => e == null || !e.IsVisited()) > 0);
+        }
+
+        #endregion Crossroads
 
         // Применяем результат к data и заодно проверяем были ли изменения
         private static void Apply(ControlFlowElementData data, ref bool changesAre,
@@ -181,12 +232,13 @@ namespace DisposePlugin.Services
         // Для каждой переменной на основе множества статусов вычисляет один.
         // (Для группы равноправных элементов, например, всех предыдущих элементов)
         private IDictionary<IVariableDeclaration, VariableDisposeStatus> UniteStatuses
-            (IDictionary<IVariableDeclaration, JetHashSet<VariableDisposeStatus>> statusSetsDictionary)
+            (IDictionary<IVariableDeclaration, JetHashSet<VariableDisposeStatus>> statusSetsDictionary,
+                bool hasCrossroads)
         {
             var result = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
             foreach (var statusSet in statusSetsDictionary)
             {
-                var uniteStatus = UniteStatus(statusSet.Value);
+                var uniteStatus = UniteStatus(statusSet.Value, hasCrossroads);
                 result[statusSet.Key] = uniteStatus;
             }
             return result;
@@ -194,7 +246,7 @@ namespace DisposePlugin.Services
 
         //На основе множества статусов вычисляет один.
         // (Для группы равноправных элементов, например, всех предыдущих элементов)
-        private VariableDisposeStatus UniteStatus(JetHashSet<VariableDisposeStatus> statusSet)
+        private VariableDisposeStatus UniteStatus(JetHashSet<VariableDisposeStatus> statusSet, bool hasCrossroads)
         {
             var disposedAndInvocationSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.DependsOnInvocation };
             if (statusSet.IsSupersetOf(disposedAndInvocationSet))
@@ -204,6 +256,15 @@ namespace DisposePlugin.Services
             var bothSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.NotDisposed };
             if (statusSet.Contains(VariableDisposeStatus.Both) || statusSet.IsSupersetOf(bothSet))
                 return VariableDisposeStatus.Both;
+            if (!hasCrossroads)
+            {
+                if (statusSet.Contains(VariableDisposeStatus.Disposed))
+                    return VariableDisposeStatus.Disposed;
+                if (statusSet.Contains(VariableDisposeStatus.NotDisposed))
+                    return VariableDisposeStatus.NotDisposed;
+                Assertion.Fail("Unknown status");
+                return VariableDisposeStatus.Unknown;
+            }
             if (statusSet.Contains(VariableDisposeStatus.Unknown))
                 return VariableDisposeStatus.Unknown;
             if (statusSet.Contains(VariableDisposeStatus.Disposed))
@@ -255,14 +316,18 @@ namespace DisposePlugin.Services
         // Возвращает true, если произошли изменения.
         // Cразу применяет все действия.
         // Возвращает были ли изменения.
-        private bool UpdateThisStatus(ICollection<ControlFlowElementData> previousElems, [NotNull] ControlFlowElementData data)
+        private bool UpdateThisStatus(ICollection<ControlFlowElementData> previousElems,
+            [NotNull] ControlFlowElementData data, bool hasCrossroads)
         {
             var statusSet = GetPreviousElemsThisStatusSet(previousElems);
-            var resultStatus = UniteStatus(statusSet);
-            var changesAre = GetInvokedExpressionsForThis(previousElems, data, resultStatus);
-            if (resultStatus != data.ThisStatus)
+            var resultStatus = UniteStatus(statusSet, hasCrossroads);
+            var combinedDtatus = data.ThisStatus != null
+                ? CombinePreviousAndCurrent(resultStatus, data.ThisStatus.Value)
+                : resultStatus;
+            var changesAre = GetInvokedExpressionsForThis(previousElems, data, combinedDtatus);
+            if (combinedDtatus != data.ThisStatus)
             {
-                data.ThisStatus = resultStatus;
+                data.ThisStatus = combinedDtatus;
                 changesAre = true;
             }
             return changesAre;
@@ -279,8 +344,8 @@ namespace DisposePlugin.Services
         // Иначе удаляет список вызванных методов.
         // Cразу применяет все действия.
         // Возвращает были ли изменения.
-        private bool GetInvokedExpressionsForThis(ICollection<ControlFlowElementData> previousElems, ControlFlowElementData data,
-            VariableDisposeStatus resultStatus)
+        private bool GetInvokedExpressionsForThis(ICollection<ControlFlowElementData> previousElems,
+            ControlFlowElementData data, VariableDisposeStatus resultStatus)
         {
             if (resultStatus != VariableDisposeStatus.DependsOnInvocation)
             {

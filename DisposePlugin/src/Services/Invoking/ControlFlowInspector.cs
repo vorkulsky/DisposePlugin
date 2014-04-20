@@ -98,7 +98,7 @@ namespace DisposePlugin.Services.Invoking
         private ControlFlowElementDataStorage InitElementDataStorage()
         {
             var elementDataStorage = new ControlFlowElementDataStorage();
-            var initialData = new ControlFlowElementData();
+            var initialData = new ControlFlowElementData(Graf.EntryElement.Id);
             _disposableArguments.ForEach(kvp => initialData[kvp.Key] = VariableDisposeStatus.NotDisposed);
             if (_processThis)
                 initialData.ThisStatus = VariableDisposeStatus.NotDisposed;

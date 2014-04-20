@@ -29,7 +29,11 @@ namespace DisposePlugin.Services.Local
         public IEnumerable<HighlightingInfo> Inspect()
         {
             _elementDataStorage = new ControlFlowElementDataStorage();
-            _elementDataStorage[Graf.EntryElement] = new ControlFlowElementData();
+            var initialData = new ControlFlowElementData(Graf.EntryElement.Id)
+            {
+                ThisStatus = VariableDisposeStatus.NotDisposed
+            };
+            _elementDataStorage[Graf.EntryElement] = initialData;
             var nodeHandlerFactory = new TreeNodeHandlerFactory(_maxLevel, _disposableInterface);
             DoStep(null, Graf.EntryElement, true, nodeHandlerFactory, _elementDataStorage);
             AddHighlightings();
