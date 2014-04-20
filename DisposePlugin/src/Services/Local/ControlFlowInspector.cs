@@ -46,16 +46,13 @@ namespace DisposePlugin.Services.Local
                 {
                     data.Status.ForEach(kvp =>
                     {
-                        if (kvp.Value == VariableDisposeStatus.NotDisposed)
+                        if (kvp.Value == VariableDisposeStatus.NotDisposed || kvp.Value == VariableDisposeStatus.Both)
                             variables.Add(kvp.Key);
                     });
                 }
             });
-            variables.ForEach(variableDeclaration =>
-            {
-                _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
-                    new LocalVariableNotDisposed(variableDeclaration.DeclaredName + " not disposed")));
-            });
+            variables.ForEach(variableDeclaration => _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
+                new LocalVariableNotDisposed(variableDeclaration.DeclaredName + " not disposed"))));
         }
     }
 }
