@@ -8,7 +8,7 @@ using JetBrains.ReSharper.Psi.Tree;
 
 namespace DisposePlugin.Util
 {
-    public class DisposeUtil
+    public static class DisposeUtil
     {
         public static bool HasDisposable([NotNull] IDeclaredElement declaredElement, [NotNull] ITypeElement disposableInterface)
         {

@@ -26,7 +26,7 @@ namespace DisposePlugin.Services.Local
             _maxLevel = maxLevel;
         }
 
-        public List<HighlightingInfo> Inspect()
+        public IEnumerable<HighlightingInfo> Inspect()
         {
             _elementDataStorage = new ControlFlowElementDataStorage();
             _elementDataStorage[Graf.EntryElement] = new ControlFlowElementData();

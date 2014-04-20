@@ -5,20 +5,20 @@ namespace DisposePlugin.Services.Local
 {
     public class TreeNodeHandlerFactory : ITreeNodeHandlerFactory
     {
-        public int MaxLevel;
+        private readonly int _maxLevel;
         [NotNull]
         private readonly ITypeElement _disposableInterface;
 
         public TreeNodeHandlerFactory(int maxLevel, [NotNull] ITypeElement disposableInterface)
         {
-            MaxLevel = maxLevel;
+            _maxLevel = maxLevel;
             _disposableInterface = disposableInterface;
 
         }
 
         public ITreeNodeHandler GetNewTreeNodeHandler()
         {
-            return new TreeNodeHandler(MaxLevel, _disposableInterface);
+            return new TreeNodeHandler(_maxLevel, _disposableInterface);
         }
     }
 }

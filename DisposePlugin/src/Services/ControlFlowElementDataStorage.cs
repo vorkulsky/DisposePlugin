@@ -143,11 +143,7 @@ namespace DisposePlugin.Services
             {
                 VariableDisposeStatus previousStatus;
                 var hasValue = previousElemsStatusSetsDictionary.TryGetValue(status.Key, out previousStatus);
-                VariableDisposeStatus resultStatus;
-                if (hasValue)
-                    resultStatus = CombinePreviousAndCurrent(previousStatus, status.Value);
-                else
-                    resultStatus = status.Value;
+                var resultStatus = hasValue ? CombinePreviousAndCurrent(previousStatus, status.Value) : status.Value;
                 result[status.Key] = resultStatus;
             }
             return result;

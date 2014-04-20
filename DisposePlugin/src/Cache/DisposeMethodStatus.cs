@@ -14,9 +14,9 @@ namespace DisposePlugin.Cache
     public class DisposeMethodStatus
     {
         private readonly IPsiSourceFile _psiSourceFile;
-        private string _name;
-        private int _offset;
-        private IList<MethodArgumentStatus> _methodArguments;
+        private readonly string _name;
+        private readonly int _offset;
+        private readonly IList<MethodArgumentStatus> _methodArguments;
 
         public DisposeMethodStatus(string name, int offset, IList<MethodArgumentStatus> methodArguments, IPsiSourceFile psiSourceFile)
         {
@@ -72,9 +72,9 @@ namespace DisposePlugin.Cache
     public class MethodArgumentStatus
     {
         private readonly IPsiSourceFile _psiSourceFile;
-        private byte _number; // Для this равен 0
-        private VariableDisposeStatus _status;
-        private IList<InvokedExpressionData> _invokedExpressions;
+        private readonly byte _number; // Для this равен 0
+        private readonly VariableDisposeStatus _status;
+        private readonly IList<InvokedExpressionData> _invokedExpressions;
 
         public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedExpressionData> invokedExpressions, IPsiSourceFile psiSourceFile)
         {
@@ -131,12 +131,12 @@ namespace DisposePlugin.Cache
     {
         private readonly IPsiSourceFile _psiSourceFile;
         // Имя вызываемого метода
-        private string _name;
+        private readonly string _name;
         // Offset выражения вызова
-        private int _offset;
+        private readonly int _offset;
         // Номер аргумента в выражении вызова метода
         // Для объекта, на котором вызывают, равен 0
-        private byte _argumentPosition;
+        private readonly byte _argumentPosition;
 
         public InvokedExpressionData(string name, int offset, byte argumentPosition, IPsiSourceFile psiSourceFile)
         {
