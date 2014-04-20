@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using DisposePlugin.Services;
-using DisposePlugin.Util;
 using JetBrains.Annotations;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
@@ -8,7 +7,7 @@ using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Resolve;
 using JetBrains.ReSharper.Psi.Tree;
 
-namespace DisposePlugin.src.Util
+namespace DisposePlugin.Util
 {
     public static class TreeNodeHandlerUtil
     {

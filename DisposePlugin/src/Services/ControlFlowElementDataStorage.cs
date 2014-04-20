@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using DisposePlugin.Cache;
 using JetBrains.Annotations;
 using System.Collections.Generic;
@@ -60,37 +59,150 @@ namespace DisposePlugin.Services
                 return false;
             }
             var currentData = this[currentElement];
-            Boolean changesAre;
-            var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).WhereNotNull().ToArray();
-            var newTargetData = ProcessUnknown(currentData ?? previousData.Clone(), previousElems, out changesAre);
-            changesAre = changesAre || UpdateInvokedExpressions(newTargetData, previousElems);
+            bool changesAre = false;
+            var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
+            var newTargetData = Update(currentData ?? new ControlFlowElementData(), previousElems, ref changesAre);
             this[currentElement] = newTargetData;
             return changesAre;
         }
 
-        // Пересчитывает Unknown-данные элемента
-        // Возвращает true, если произошли изменения
-        private ControlFlowElementData ProcessUnknown([NotNull] ControlFlowElementData data,
-            IEnumerable<ControlFlowElementData> previousElems, out Boolean changesAre)
+        // Пересчитывает данные элемента
+        // Возвращает true, если найдены любые изменения
+        // previousElems должен содержать null для элементов, у которых нет еще СontrolFlowElementData
+        private ControlFlowElementData Update([NotNull] ControlFlowElementData data,
+            ICollection<ControlFlowElementData> previousElems, ref bool changesAre)
         {
-            var resultNameAndStatus = (from kvp in data.Status
-                                       where kvp.Value == VariableDisposeStatus.Unknown
-                                       select new { Name = kvp.Key, ResultStatus = UpdateStatus(GetPreviousElemsStatusSet(previousElems, kvp)) }).ToList();
-            changesAre = resultNameAndStatus.Any(e => e.ResultStatus != VariableDisposeStatus.Unknown);
-            resultNameAndStatus.ForEach(e => data[e.Name] = e.ResultStatus);
-            if (data.ThisStatus == VariableDisposeStatus.Unknown)
-                changesAre = changesAre || UpdateThisStatus(previousElems, data);
+            var previousElemsStatusSetsDictionary = GetPreviousElemsStatusSetsList(previousElems);
+            var previousElemsUnionStatusDictionary = UniteStatuses(previousElemsStatusSetsDictionary);
+            var resultStatusDictionary = CombinePreviousAndCurrent(previousElemsUnionStatusDictionary, data);
+            var invokedExpressions = GetInvokedExpressions(previousElems, resultStatusDictionary, data.InvokedExpressions);
+            Apply(data, ref changesAre, resultStatusDictionary, invokedExpressions);
+            var changesAreThis = UpdateThisStatus(previousElems, data);
+            changesAre = changesAre || changesAreThis;
             return data;
         }
 
-        private JetHashSet<VariableDisposeStatus> GetPreviousElemsStatusSet(IEnumerable<ControlFlowElementData> previousElems,
-            KeyValuePair<IVariableDeclaration, VariableDisposeStatus> kvp)
+        // Применяем результат к data и заодно проверяем были ли изменения
+        private static void Apply(ControlFlowElementData data, ref bool changesAre,
+            IDictionary<IVariableDeclaration, VariableDisposeStatus> resultStatusDictionary,
+            OneToSetMap<IVariableDeclaration, InvokedExpressionData> invokedExpressions)
         {
-            return previousElems.Select(previousElementData => previousElementData[kvp.Key] ?? VariableDisposeStatus.Unknown).ToHashSet();
+            foreach (var resultStatus in resultStatusDictionary)
+            {
+                var status = data[resultStatus.Key];
+                if (status != resultStatus.Value)
+                {
+                    changesAre = true;
+                    data[resultStatus.Key] = resultStatus.Value;
+                }
+            }
+            changesAre = changesAre || invokedExpressions.Keys.Except(data.InvokedExpressions.Keys).Any(); // или вычисляется лениво
+            data.InvokedExpressions = invokedExpressions;
         }
 
-        private VariableDisposeStatus UpdateStatus(JetHashSet<VariableDisposeStatus> statusSet)
+        #region status
+
+        // Возвращает множество существующих статусов для каждой переменной, определенной хотя бы в одном прердыдущей элементе.
+        // Если хотя бы один предыдущий элемент еще не посещался, то множество статусов для всех переменных будет содержать
+        // еще и статус Unknown.
+        // previousElems должен содержать null для элементов, у которых нет еще СontrolFlowElementData или которые не посещались.
+        private IDictionary<IVariableDeclaration, JetHashSet<VariableDisposeStatus>> GetPreviousElemsStatusSetsList
+            (ICollection<ControlFlowElementData> previousElems)
         {
+            var previousWithoutNotVisitedElements = previousElems.Where(e => e != null && e.IsVisited()).ToList();
+            var result = new Dictionary<IVariableDeclaration, JetHashSet<VariableDisposeStatus>>();
+            foreach (var status in previousWithoutNotVisitedElements.SelectMany(data => data.Status))
+            {
+                JetHashSet<VariableDisposeStatus> statusSet;
+                var hasValue = result.TryGetValue(status.Key, out statusSet);
+                if (hasValue)
+                    statusSet.Add(status.Value);
+                else
+                {
+                    statusSet = new JetHashSet<VariableDisposeStatus> {status.Value};
+                    result.Add(status.Key, statusSet);
+                }
+            }
+            var hasNotVisitedElements = previousElems.Count != previousWithoutNotVisitedElements.Count;
+            if (hasNotVisitedElements)
+                result.ForEach(kvp => kvp.Value.Add(VariableDisposeStatus.Unknown));
+            return result;
+        }
+
+        // Изменяет входную переменную previousElemsStatusSetsDictionary в соответствии с статусами, точно известными для
+        // текущего элемента
+        private IDictionary<IVariableDeclaration, VariableDisposeStatus> CombinePreviousAndCurrent
+            (IDictionary<IVariableDeclaration, VariableDisposeStatus> previousElemsStatusSetsDictionary,
+                ControlFlowElementData currentElemData)
+        {
+            var result = new Dictionary<IVariableDeclaration, VariableDisposeStatus>(previousElemsStatusSetsDictionary);
+            if (currentElemData == null || !currentElemData.IsVisited())
+                return result;
+            var currentElementStatus = currentElemData.Status;
+            foreach (var status in currentElementStatus)
+            {
+                VariableDisposeStatus previousStatus;
+                var hasValue = previousElemsStatusSetsDictionary.TryGetValue(status.Key, out previousStatus);
+                VariableDisposeStatus resultStatus;
+                if (hasValue)
+                    resultStatus = CombinePreviousAndCurrent(previousStatus, status.Value);
+                else
+                    resultStatus = status.Value;
+                result.Add(status.Key, resultStatus);
+            }
+            return result;
+        }
+
+        // Вычисляет статус на основе предыдущего объединенного статуса и текущего статуса.
+        private VariableDisposeStatus CombinePreviousAndCurrent(VariableDisposeStatus previousStatus, VariableDisposeStatus status)
+        {
+            switch (status)
+            {
+                case VariableDisposeStatus.Disposed:
+                    return VariableDisposeStatus.Disposed;
+                case VariableDisposeStatus.NotDisposed:
+                    return VariableDisposeStatus.NotDisposed;
+                case VariableDisposeStatus.Both:
+                    return VariableDisposeStatus.Both;
+                case VariableDisposeStatus.Unknown:
+                    return previousStatus;
+                case VariableDisposeStatus.DependsOnInvocation:
+                    switch (previousStatus)
+                    {
+                        case VariableDisposeStatus.Disposed:
+                            return VariableDisposeStatus.Disposed;
+                        case VariableDisposeStatus.Both:
+                            return VariableDisposeStatus.Both;
+                        default:
+                            return VariableDisposeStatus.DependsOnInvocation;
+                    }
+                default:
+                    Assertion.Fail("Unaccounted VariableDisposeStatus");
+                    return VariableDisposeStatus.Unknown;
+            }
+        }
+
+        // Для каждой переменной на основе множества статусов вычисляет один.
+        // (Для группы равноправных элементов, например, всех предыдущих элементов)
+        private IDictionary<IVariableDeclaration, VariableDisposeStatus> UniteStatuses
+            (IDictionary<IVariableDeclaration, JetHashSet<VariableDisposeStatus>> statusSetsDictionary)
+        {
+            var result = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
+            foreach (var statusSet in statusSetsDictionary)
+            {
+                var uniteStatus = UniteStatus(statusSet.Value);
+                result.Add(statusSet.Key, uniteStatus);
+            }
+            return result;
+        }
+
+        //На основе множества статусов вычисляет один.
+        // (Для группы равноправных элементов, например, всех предыдущих элементов)
+        private VariableDisposeStatus UniteStatus(JetHashSet<VariableDisposeStatus> statusSet)
+        {
+            var disposedAndInvocationSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.DependsOnInvocation };
+            if (statusSet.IsSupersetOf(disposedAndInvocationSet))
+                return VariableDisposeStatus.Disposed;
             if (statusSet.Contains(VariableDisposeStatus.DependsOnInvocation))
                 return VariableDisposeStatus.DependsOnInvocation;
             var bothSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.NotDisposed };
@@ -103,66 +215,102 @@ namespace DisposePlugin.Services
             return VariableDisposeStatus.NotDisposed;
         }
 
-        // Веполняет мердж для переменной this
-        // Возвращает true, если произошли изменения
-        private bool UpdateThisStatus(IEnumerable<ControlFlowElementData> previousElems, [NotNull] ControlFlowElementData data)
+        #endregion status
+
+        #region invokedExpressions
+
+        // Обновляет список вызванных методов для переменных со статусом DependsOnInvocation.
+        // Удаляет список вызванных методов для переменных, лешившихся этого статуса.
+        private OneToSetMap<IVariableDeclaration, InvokedExpressionData> GetInvokedExpressions
+            (ICollection<ControlFlowElementData> previousElems,
+            IDictionary<IVariableDeclaration, VariableDisposeStatus> statusDictionary,
+            OneToSetMap<IVariableDeclaration, InvokedExpressionData> invokedExpressions)
+        {
+            var result = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>(invokedExpressions);
+            foreach (var status in statusDictionary)
+            {
+                if (status.Value != VariableDisposeStatus.DependsOnInvocation)
+                {
+                    if (invokedExpressions.ContainsKey(status.Key))
+                        result.RemoveKey(status.Key);
+                    continue;
+                }
+                foreach (var previousElem in previousElems)
+                {
+                    if (previousElem == null || !previousElem.IsVisited())
+                        continue;
+                    var previousStatus = previousElem[status.Key];
+                    if (previousStatus == null)
+                        continue;
+                    if (previousStatus != VariableDisposeStatus.DependsOnInvocation)
+                        continue;
+                    if (previousElem.InvokedExpressions.ContainsKey(status.Key))
+                        result.AddRange(status.Key, previousElem.InvokedExpressions[status.Key]);
+                }
+            }
+            return result;
+        }
+
+        #endregion invokedExpressions
+
+        #region this
+
+        // Веполняет мердж для переменной this.
+        // Возвращает true, если произошли изменения.
+        // Cразу применяет все действия.
+        // Возвращает были ли изменения.
+        private bool UpdateThisStatus(ICollection<ControlFlowElementData> previousElems, [NotNull] ControlFlowElementData data)
         {
             var statusSet = GetPreviousElemsThisStatusSet(previousElems);
-            var resultStatus = UpdateStatus(statusSet);
-            if (resultStatus != VariableDisposeStatus.Unknown)
+            var resultStatus = UniteStatus(statusSet);
+            var changesAre = GetInvokedExpressionsForThis(previousElems, data, resultStatus);
+            if (resultStatus != data.ThisStatus)
             {
                 data.ThisStatus = resultStatus;
-                return true;
+                changesAre = true;
             }
-            return false;
+            return changesAre;
         }
 
         private JetHashSet<VariableDisposeStatus> GetPreviousElemsThisStatusSet(IEnumerable<ControlFlowElementData> previousElems)
         {
-            return previousElems.Select(previousElementData => previousElementData.ThisStatus ?? VariableDisposeStatus.Unknown).ToHashSet();
+            return previousElems.Select(previousElementData => previousElementData == null || !previousElementData.IsVisited()
+                ? VariableDisposeStatus.Unknown
+                : previousElementData.ThisStatus ?? VariableDisposeStatus.Unknown).ToHashSet();
         }
 
-        private bool UpdateInvokedExpressions([NotNull] ControlFlowElementData data, ICollection<ControlFlowElementData> previousElems)
+        // Обновляет список вызванных методов для this, если это имеет статус DependsOnInvocation.
+        // Иначе удаляет список вызванных методов.
+        // Cразу применяет все действия.
+        // Возвращает были ли изменения.
+        private bool GetInvokedExpressionsForThis(ICollection<ControlFlowElementData> previousElems, ControlFlowElementData data,
+            VariableDisposeStatus resultStatus)
         {
-            var changesAre = false;
-            var invokedExpressionsResult = new OneToListMap<IVariableDeclaration, InvokedExpressionData>();
-            foreach (var kvp in data.InvokedExpressions)
+            if (resultStatus != VariableDisposeStatus.DependsOnInvocation)
             {
-                var invokedExpressionSet = GetPreviousElemsInvokedExpressionSet(previousElems, kvp.Key);
-                var sizeBefore = kvp.Value.Count;
-                invokedExpressionSet.UnionWith(kvp.Value);
-                var sizeAfter = invokedExpressionSet.Count;
-                if (sizeBefore != sizeAfter) // Количество вызванных методов не может уменьшаться
-                    changesAre = true;
-                invokedExpressionsResult.AddValueRange(kvp.Key, invokedExpressionSet);
+                if (data.ThisInvokedExpressions.Any())
+                {
+                    data.ThisInvokedExpressions.Clear();
+                    return true;
+                }
             }
-            data.InvokedExpressions = invokedExpressionsResult;
-
-            // Обновляем ThisInvokedExpressions
-            if (data.ThisStatus != null)
+            var result = new HashSet<InvokedExpressionData>(data.ThisInvokedExpressions);
+            foreach (var previousElem in previousElems)
             {
-                var invokedExpressionSet = GetPreviousElemsThisInvokedExpressionSet(previousElems);
-                var sizeBefore = data.ThisInvokedExpressions.Count;
-                invokedExpressionSet.UnionWith(data.ThisInvokedExpressions);
-                var sizeAfter = invokedExpressionSet.Count;
-                if (sizeBefore != sizeAfter)
-                    changesAre = true;
-                data.ThisInvokedExpressions = invokedExpressionSet.ToList();
+                if (previousElem == null || !previousElem.IsVisited())
+                    continue;
+                var previousStatus = previousElem.ThisStatus;
+                if (previousStatus == null)
+                    continue;
+                if (previousStatus != VariableDisposeStatus.DependsOnInvocation)
+                    continue;
+                result.AddRange(previousElem.ThisInvokedExpressions);
             }
-
+            var changesAre = result.Except(data.ThisInvokedExpressions).Any(); // или вычисляется лениво
+            data.ThisInvokedExpressions = result;
             return changesAre;
         }
 
-        private JetHashSet<InvokedExpressionData> GetPreviousElemsInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems,
-            IVariableDeclaration variable)
-        {
-            return previousElems.SelectMany(previousElementData => previousElementData.InvokedExpressions)
-                .Where(kvp => kvp.Key == variable).SelectMany(kvp => kvp.Value).ToHashSet();
-        }
-
-        private JetHashSet<InvokedExpressionData> GetPreviousElemsThisInvokedExpressionSet(IEnumerable<ControlFlowElementData> previousElems)
-        {
-            return previousElems.SelectMany(previousElementData => previousElementData.ThisInvokedExpressions).ToHashSet();
-        }
+        #endregion this
     }
 }

@@ -18,10 +18,10 @@ namespace DisposePlugin.Services
     public class ControlFlowElementData
     {
         private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
-        public OneToListMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions = new OneToListMap<IVariableDeclaration, InvokedExpressionData>();
+        public OneToSetMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
         public VariableDisposeStatus? ThisStatus;
-        public IList<InvokedExpressionData> ThisInvokedExpressions = new List<InvokedExpressionData>();
-        private bool _visited; // = false
+        public HashSet<InvokedExpressionData> ThisInvokedExpressions = new HashSet<InvokedExpressionData>();
+        private bool _visited = false;
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
         {
@@ -50,16 +50,6 @@ namespace DisposePlugin.Services
         }
 
         #endregion Indexers
-
-        public ControlFlowElementData Clone()
-        {
-            var clone = new ControlFlowElementData();
-            _status.ForEach(kvp => clone[kvp.Key] = kvp.Value);
-            InvokedExpressions.ForEach(kvl => clone.InvokedExpressions.AddValueRange(kvl.Key, kvl.Value));
-            clone.ThisStatus = ThisStatus;
-            ThisInvokedExpressions.ForEach(m => clone.ThisInvokedExpressions.Add(m));
-            return clone;
-        }
 
         public Boolean IsVisited()
         {
