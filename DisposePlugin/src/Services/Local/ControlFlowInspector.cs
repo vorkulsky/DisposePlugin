@@ -13,8 +13,7 @@ namespace DisposePlugin.Services.Local
     public class ControlFlowInspector : Services.ControlFlowInspector
     {
         private readonly List<HighlightingInfo> _highlightings = new List<HighlightingInfo>();
-        [NotNull]
-        private readonly ITypeElement _disposableInterface;
+        [NotNull] private readonly ITypeElement _disposableInterface;
         private readonly int _maxLevel;
         private ControlFlowElementDataStorage _elementDataStorage;
 
@@ -55,8 +54,11 @@ namespace DisposePlugin.Services.Local
                     });
                 }
             });
-            variables.ForEach(variableDeclaration => _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
-                new LocalVariableNotDisposed(variableDeclaration.DeclaredName + " not disposed"))));
+            variables.ForEach(
+                variableDeclaration =>
+                    _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
+                        new LocalVariableNotDisposed(
+                            "Variable " + variableDeclaration.DeclaredName + "probably is not disposed"))));
         }
     }
 }

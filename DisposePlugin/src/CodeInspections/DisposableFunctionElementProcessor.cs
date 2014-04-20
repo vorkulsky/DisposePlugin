@@ -24,10 +24,7 @@ namespace DisposePlugin.CodeInspections
 
         public List<HighlightingInfo> Highlightings
         {
-            get
-            {
-                return _highlightings;
-            }
+            get { return _highlightings; }
         }
 
         public bool InteriorShouldBeProcessed(ITreeNode element)
@@ -68,10 +65,7 @@ namespace DisposePlugin.CodeInspections
 
         public bool ProcessingIsFinished
         {
-            get
-            {
-                return _process.InterruptFlag;
-            }
+            get { return _process.InterruptFlag; }
         }
     }
 }

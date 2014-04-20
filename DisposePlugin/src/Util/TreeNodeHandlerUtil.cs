@@ -12,7 +12,8 @@ namespace DisposePlugin.Util
     public static class TreeNodeHandlerUtil
     {
         [CanBeNull]
-        public static IVariableDeclaration GetQualifierVariableDeclaration([NotNull] IReferenceExpression invokedExpression)
+        public static IVariableDeclaration GetQualifierVariableDeclaration(
+            [NotNull] IReferenceExpression invokedExpression)
         {
             var qualifierExpression = invokedExpression.QualifierExpression;
             if (qualifierExpression == null || qualifierExpression is IThisExpression)
@@ -20,7 +21,8 @@ namespace DisposePlugin.Util
             return GetVariableDeclarationForReferenceExpression(qualifierExpression);
         }
 
-        public static bool IsInvocationOnDisposableThis([NotNull] IReferenceExpression invokedExpression, [NotNull] ITypeElement disposableInterface)
+        public static bool IsInvocationOnDisposableThis([NotNull] IReferenceExpression invokedExpression,
+            [NotNull] ITypeElement disposableInterface)
         {
             var qualifierExpression = invokedExpression.QualifierExpression;
             if (qualifierExpression == null || qualifierExpression is IThisExpression)
@@ -28,7 +30,8 @@ namespace DisposePlugin.Util
             return false;
         }
 
-        public static bool IsContainingTypeDisposable([NotNull] ICSharpTreeNode node, [NotNull] ITypeElement disposableInterface)
+        public static bool IsContainingTypeDisposable([NotNull] ICSharpTreeNode node,
+            [NotNull] ITypeElement disposableInterface)
         {
             var containingTypeDeclaration = node.GetContainingTypeDeclaration();
             var declaredElement = containingTypeDeclaration.DeclaredElement;
@@ -40,7 +43,8 @@ namespace DisposePlugin.Util
         }
 
         [CanBeNull]
-        public static IVariableDeclaration GetVariableDeclarationForReferenceExpression([NotNull] ICSharpExpression expression)
+        public static IVariableDeclaration GetVariableDeclarationForReferenceExpression(
+            [NotNull] ICSharpExpression expression)
         {
             var referenceExpression = expression as IReferenceExpression;
             if (referenceExpression == null)
@@ -112,7 +116,8 @@ namespace DisposePlugin.Util
             return index;
         }
 
-        public static bool CheckOnDisposeInvocation(IInvocationExpression invocationExpression, ControlFlowElementData data,
+        public static bool CheckOnDisposeInvocation(IInvocationExpression invocationExpression,
+            ControlFlowElementData data,
             bool isInvocationOnDisposableThis, IVariableDeclaration qualifierDisposableVariableDeclaration)
         {
             if (isInvocationOnDisposableThis)

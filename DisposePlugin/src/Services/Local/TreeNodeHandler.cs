@@ -14,8 +14,7 @@ namespace DisposePlugin.Services.Local
 {
     public class TreeNodeHandler : ITreeNodeHandler
     {
-        [NotNull]
-        private readonly ITypeElement _disposableInterface;
+        [NotNull] private readonly ITypeElement _disposableInterface;
         private readonly int _maxLevel;
 
         public TreeNodeHandler(int maxLevel, [NotNull] ITypeElement disposableInterface)
@@ -52,10 +51,12 @@ namespace DisposePlugin.Services.Local
             var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
             if (invokedExpression == null)
                 return;
-            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression, _disposableInterface);
+            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression,
+                _disposableInterface);
             var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invokedExpression);
             var qualifierDisposableVariableDeclaration = data[qualifierVariableDeclaration] != null
-                ? qualifierVariableDeclaration : null;
+                ? qualifierVariableDeclaration
+                : null;
 
             if (TreeNodeHandlerUtil.CheckOnDisposeInvocation(invocationExpression, data, isInvocationOnDisposableThis,
                 qualifierDisposableVariableDeclaration))
@@ -64,17 +65,21 @@ namespace DisposePlugin.Services.Local
             if (_maxLevel <= 0)
                 return;
 
-            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration, isInvocationOnDisposableThis, 1);
+            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration,
+                isInvocationOnDisposableThis, 1);
         }
 
-        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression, ControlFlowElementData data,
-            [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis, int level)
+        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
+            ControlFlowElementData data,
+            [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis,
+            int level)
         {
             var connections = new Dictionary<IRegularParameterDeclaration, IVariableDeclaration>();
             var thisConnections = new List<IRegularParameterDeclaration>();
             CalculateConnectionOfDisposableVariables(invocationExpression, data, thisConnections, connections);
 
-            if (!connections.Any() && !thisConnections.Any() && qualifierDisposableVariableDeclaration == null && !isInvocationOnDisposableThis)
+            if (!connections.Any() && !thisConnections.Any() && qualifierDisposableVariableDeclaration == null &&
+                !isInvocationOnDisposableThis)
                 return;
 
             var methodStatus = GetStatusForInvocationExpressionFromCache(invocationExpression);
@@ -212,7 +217,8 @@ namespace DisposePlugin.Services.Local
         }
 
         [CanBeNull]
-        private static DisposeMethodStatus GetStatusForInvocationExpressionFromCache(IInvocationExpression invocationExpression)
+        private static DisposeMethodStatus GetStatusForInvocationExpressionFromCache(
+            IInvocationExpression invocationExpression)
         {
             var invokedDeclaredElement = invocationExpression.InvocationExpressionReference.Resolve().DeclaredElement;
             if (invokedDeclaredElement == null)
@@ -253,9 +259,10 @@ namespace DisposePlugin.Services.Local
                 return false;
 
             // SimpleDisposeInvocation здесь не может, т.к. в этом случае статус не был бы DependsOnInvocation
-            var argumentStatus = invokedExpressionData.ArgumentPosition == 0 
+            var argumentStatus = invokedExpressionData.ArgumentPosition == 0
                 ? GetArgumentStatusByNumber(methodStatus, 0)
-                : GetMethodArgumentStatusByInvokedExpressionData(invokedExpressionData, invocationExpression, methodStatus);
+                : GetMethodArgumentStatusByInvokedExpressionData(invokedExpressionData, invocationExpression,
+                    methodStatus);
             if (argumentStatus == null)
                 return false;
             switch (argumentStatus.Status)
@@ -287,7 +294,8 @@ namespace DisposePlugin.Services.Local
         }
 
         [CanBeNull]
-        private static IInvocationExpression GetExpressionByInvokedExpressionData(InvokedExpressionData invokedExpressionData)
+        private static IInvocationExpression GetExpressionByInvokedExpressionData(
+            InvokedExpressionData invokedExpressionData)
         {
             var sourceFile = invokedExpressionData.PsiSourceFile;
             if (sourceFile == null)
@@ -300,7 +308,8 @@ namespace DisposePlugin.Services.Local
             if (invokedExpressions.Count == 0)
                 return false;
             if (level != _maxLevel)
-                return invokedExpressions.Any(invokedExpression => ProcessInvocationRecursively(invokedExpression, level + 1));
+                return invokedExpressions.Any(invokedExpression =>
+                    ProcessInvocationRecursively(invokedExpression, level + 1));
             return false;
         }
     }

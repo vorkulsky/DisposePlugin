@@ -18,7 +18,8 @@ namespace DisposePlugin.Cache
         private readonly int _offset;
         private readonly IList<MethodArgumentStatus> _methodArguments;
 
-        public DisposeMethodStatus(string name, int offset, IList<MethodArgumentStatus> methodArguments, IPsiSourceFile psiSourceFile)
+        public DisposeMethodStatus(string name, int offset, IList<MethodArgumentStatus> methodArguments,
+            IPsiSourceFile psiSourceFile)
         {
             _name = name;
             _offset = offset;
@@ -27,6 +28,7 @@ namespace DisposePlugin.Cache
         }
 
         #region DisposeMethodStatus Members
+
         public IPsiSourceFile PsiSourceFile
         {
             get { return _psiSourceFile; }
@@ -46,6 +48,7 @@ namespace DisposePlugin.Cache
         {
             get { return _methodArguments; }
         }
+
         #endregion DisposeMethodStatus Members
 
         public void Write(BinaryWriter writer)
@@ -76,7 +79,8 @@ namespace DisposePlugin.Cache
         private readonly VariableDisposeStatus _status;
         private readonly IList<InvokedExpressionData> _invokedExpressions;
 
-        public MethodArgumentStatus(byte number, VariableDisposeStatus status, IList<InvokedExpressionData> invokedExpressions, IPsiSourceFile psiSourceFile)
+        public MethodArgumentStatus(byte number, VariableDisposeStatus status,
+            IList<InvokedExpressionData> invokedExpressions, IPsiSourceFile psiSourceFile)
         {
             _number = number;
             _status = status;
@@ -85,6 +89,7 @@ namespace DisposePlugin.Cache
         }
 
         #region MethodArgumentStatus Members
+
         public IPsiSourceFile PsiSourceFile
         {
             get { return _psiSourceFile; }
@@ -104,6 +109,7 @@ namespace DisposePlugin.Cache
         {
             get { return _invokedExpressions; }
         }
+
         #endregion MethodArgumentStatus Members
 
         public void Write(BinaryWriter writer)
@@ -118,7 +124,7 @@ namespace DisposePlugin.Cache
         public static MethodArgumentStatus Read(BinaryReader reader, IPsiSourceFile psiSourceFile)
         {
             var number = reader.ReadByte();
-            var status = (VariableDisposeStatus) Enum.Parse(typeof(VariableDisposeStatus), reader.ReadString());
+            var status = (VariableDisposeStatus) Enum.Parse(typeof (VariableDisposeStatus), reader.ReadString());
             var count = reader.ReadInt32();
             var invokedExpressions = new List<InvokedExpressionData>(count);
             for (var i = 0; i < count; i++)
@@ -147,10 +153,12 @@ namespace DisposePlugin.Cache
         }
 
         #region InvokedExpressionData Members
+
         public IPsiSourceFile PsiSourceFile
         {
             get { return _psiSourceFile; }
         }
+
         public string Name
         {
             get { return _name; }
@@ -165,6 +173,7 @@ namespace DisposePlugin.Cache
         {
             get { return _argumentPosition; }
         }
+
         #endregion InvokedExpressionData Members
 
         public void Write(BinaryWriter writer)

@@ -11,8 +11,7 @@ namespace DisposePlugin.Services.Invoking
 {
     public class TreeNodeHandler : ITreeNodeHandler
     {
-        [NotNull]
-        private readonly ITypeElement _disposableInterface;
+        [NotNull] private readonly ITypeElement _disposableInterface;
 
         public TreeNodeHandler([NotNull] ITypeElement disposableInterface)
         {
@@ -33,26 +32,31 @@ namespace DisposePlugin.Services.Invoking
             var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
             if (invokedExpression == null)
                 return;
-            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression, _disposableInterface);
+            var isInvocationOnDisposableThis = TreeNodeHandlerUtil.IsInvocationOnDisposableThis(invokedExpression,
+                _disposableInterface);
             var qualifierVariableDeclaration = TreeNodeHandlerUtil.GetQualifierVariableDeclaration(invokedExpression);
             var qualifierDisposableVariableDeclaration = data[qualifierVariableDeclaration] != null
-                ? qualifierVariableDeclaration : null;
+                ? qualifierVariableDeclaration
+                : null;
 
             if (TreeNodeHandlerUtil.CheckOnDisposeInvocation(invocationExpression, data, isInvocationOnDisposableThis,
                 qualifierDisposableVariableDeclaration))
                 return;
 
-            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration, isInvocationOnDisposableThis);
+            ProcessSimpleInvocation(invocationExpression, data, qualifierDisposableVariableDeclaration,
+                isInvocationOnDisposableThis);
         }
 
-        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression, ControlFlowElementData data,
+        private void ProcessSimpleInvocation([NotNull] IInvocationExpression invocationExpression,
+            ControlFlowElementData data,
             [CanBeNull] IVariableDeclaration qualifierDisposableVariableDeclaration, bool isInvocationOnDisposableThis)
         {
             var positions = new Dictionary<IVariableDeclaration, byte>();
             var thisPositions = new List<byte>();
             CalculatePositionOfDisposableVariables(invocationExpression, data, thisPositions, positions);
 
-            if (!positions.Any() && !thisPositions.Any() && qualifierDisposableVariableDeclaration == null && !isInvocationOnDisposableThis)
+            if (!positions.Any() && !thisPositions.Any() && qualifierDisposableVariableDeclaration == null &&
+                !isInvocationOnDisposableThis)
                 return;
 
             var referenceExpression = invocationExpression.InvokedExpression as IReferenceExpression;

@@ -17,8 +17,12 @@ namespace DisposePlugin.Services
 
     public class ControlFlowElementData
     {
-        private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
-        public OneToSetMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
+        private readonly Dictionary<IVariableDeclaration, VariableDisposeStatus> _status =
+            new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
+
+        public OneToSetMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions =
+            new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
+
         public VariableDisposeStatus? ThisStatus;
         public HashSet<InvokedExpressionData> ThisInvokedExpressions = new HashSet<InvokedExpressionData>();
         // Содержит id вершин графа потока управления, в которые ведет несколько путей, не все из которых пройдены.

@@ -10,19 +10,22 @@ namespace DisposePlugin.Util
 {
     public static class DisposeUtil
     {
-        public static bool HasDisposable([NotNull] IDeclaredElement declaredElement, [NotNull] ITypeElement disposableInterface)
+        public static bool HasDisposable([NotNull] IDeclaredElement declaredElement,
+            [NotNull] ITypeElement disposableInterface)
         {
             var typeElement = declaredElement as ITypeElement;
             return HasDisposable(typeElement, disposableInterface);
         }
 
-        public static bool HasDisposable([NotNull] ITypeDeclaration declaration, [NotNull] ITypeElement disposableInterface)
+        public static bool HasDisposable([NotNull] ITypeDeclaration declaration,
+            [NotNull] ITypeElement disposableInterface)
         {
             var ownTypeElement = declaration.DeclaredElement;
             return HasDisposable(ownTypeElement, disposableInterface);
         }
 
-        private static bool HasDisposable([CanBeNull] ITypeElement typeElement, [NotNull] ITypeElement disposableInterface)
+        private static bool HasDisposable([CanBeNull] ITypeElement typeElement,
+            [NotNull] ITypeElement disposableInterface)
         {
             if (typeElement == null)
                 return false;
@@ -38,9 +41,9 @@ namespace DisposePlugin.Util
                 return null;
 
             return declaration.DeclaredElement.Methods
-              .FirstOrDefault(method => method.ShortName == "Dispose"
-                                        && method.ReturnType.IsVoid()
-                                        && method.Parameters.Count == 0);
+                .FirstOrDefault(method => method.ShortName == "Dispose"
+                                          && method.ReturnType.IsVoid()
+                                          && method.Parameters.Count == 0);
         }
 
         [CanBeNull]
@@ -77,7 +80,8 @@ namespace DisposePlugin.Util
             return null;
         }
 
-        public static bool VariableTypeImplementsDisposable([NotNull] ILocalVariableDeclaration element, [NotNull] ITypeElement disposableInterface)
+        public static bool VariableTypeImplementsDisposable([NotNull] ILocalVariableDeclaration element,
+            [NotNull] ITypeElement disposableInterface)
         {
             IDeclaredElement variableTypeDeclaredElement;
             var variableReferenceName = element.ScalarTypeName;

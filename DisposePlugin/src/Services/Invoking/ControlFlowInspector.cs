@@ -15,8 +15,7 @@ namespace DisposePlugin.Services.Invoking
     {
         private readonly Dictionary<IRegularParameterDeclaration, byte> _disposableArguments;
         private readonly bool _processThis;
-        [NotNull]
-        private readonly ITypeElement _disposableInterface;
+        [NotNull] private readonly ITypeElement _disposableInterface;
         private readonly ControlFlowElementDataStorage _elementDataStorage;
         private readonly IPsiSourceFile _psiSourceFile;
 
@@ -36,7 +35,7 @@ namespace DisposePlugin.Services.Invoking
             if (_disposableArguments.Count == 0 && !_processThis)
                 return new List<MethodArgumentStatus>();
             var nodeHandlerFactory = new TreeNodeHandlerFactory(_disposableInterface);
-            
+
             //_disposableArguments и _processThis фактически передаются внутри первичного elementDataStorage
             DoStep(null, Graf.EntryElement, true, nodeHandlerFactory, _elementDataStorage);
             var argumentStatuses = CalculateArgumentStatuses();
@@ -49,25 +48,26 @@ namespace DisposePlugin.Services.Invoking
             var allInvokedExpressions = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
             var allStatuses = new OneToSetMap<IVariableDeclaration, VariableDisposeStatus>();
             DoForEachExit(data =>
-                {
-                    data.InvokedExpressions.ForEach(kvp => allInvokedExpressions.AddRange(kvp.Key, kvp.Value));
-                    data.Status.ForEach(kvp => allStatuses.Add(kvp.Key, kvp.Value));
-                });
+            {
+                data.InvokedExpressions.ForEach(kvp => allInvokedExpressions.AddRange(kvp.Key, kvp.Value));
+                data.Status.ForEach(kvp => allStatuses.Add(kvp.Key, kvp.Value));
+            });
             var generalStatuses = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
             allStatuses.ForEach(kvp => generalStatuses[kvp.Key] = GetGeneralStatus(kvp.Value));
-            _disposableArguments.ForEach(kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
-                allInvokedExpressions[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
+            _disposableArguments.ForEach(
+                kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
+                    allInvokedExpressions[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
 
             if (_processThis)
             {
                 var allThisInvokedExpressions = new HashSet<InvokedExpressionData>();
                 var allThisStatuses = new HashSet<VariableDisposeStatus>();
                 DoForEachExit(data =>
-                    {
-                        allThisInvokedExpressions.UnionWith(data.ThisInvokedExpressions);
-                        if (data.ThisStatus.HasValue)
-                            allThisStatuses.Add(data.ThisStatus.Value);
-                    });
+                {
+                    allThisInvokedExpressions.UnionWith(data.ThisInvokedExpressions);
+                    if (data.ThisStatus.HasValue)
+                        allThisStatuses.Add(data.ThisStatus.Value);
+                });
                 argumentStatuses.Add(new MethodArgumentStatus(0, GetGeneralStatus(allThisStatuses),
                     allThisInvokedExpressions.OrderBy(im => im.Offset).ToList(), _psiSourceFile));
             }

@@ -1,7 +1,7 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using DisposePlugin.Cache;
 using JetBrains.Annotations;
-using System.Collections.Generic;
 using JetBrains.ReSharper.Psi.ControlFlow;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.Util;
@@ -10,7 +10,8 @@ namespace DisposePlugin.Services
 {
     public class ControlFlowElementDataStorage
     {
-        private readonly Dictionary<int, ControlFlowElementData> _elementData = new Dictionary<int, ControlFlowElementData>();
+        private readonly Dictionary<int, ControlFlowElementData> _elementData =
+            new Dictionary<int, ControlFlowElementData>();
 
         #region Indexers
 
@@ -40,10 +41,7 @@ namespace DisposePlugin.Services
                 if (element != null)
                     this[element.Id] = value;
             }
-            get
-            {
-                return element != null ? this[element.Id] : null;
-            }
+            get { return element != null ? this[element.Id] : null; }
         }
 
         #endregion Indexers
@@ -61,7 +59,8 @@ namespace DisposePlugin.Services
             var currentData = this[currentElement];
             var changesAre = false;
             var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
-            var newTargetData = Update(currentData ?? new ControlFlowElementData(currentElement.Id), previousElems, ref changesAre);
+            var newTargetData = Update(currentData ?? new ControlFlowElementData(currentElement.Id), previousElems,
+                ref changesAre);
             this[currentElement] = newTargetData;
             return changesAre;
         }
@@ -76,7 +75,8 @@ namespace DisposePlugin.Services
             var previousElemsStatusSetsDictionary = GetPreviousElemsStatusSetsList(previousElems);
             var previousElemsUnionStatusDictionary = UniteStatuses(previousElemsStatusSetsDictionary, hasCrossroads);
             var resultStatusDictionary = CombinePreviousAndCurrent(previousElemsUnionStatusDictionary, data);
-            var invokedExpressions = GetInvokedExpressions(previousElems, resultStatusDictionary, data.InvokedExpressions);
+            var invokedExpressions = GetInvokedExpressions(previousElems, resultStatusDictionary,
+                data.InvokedExpressions);
             Apply(data, ref changesAre, resultStatusDictionary, invokedExpressions);
             var changesAreThis = UpdateThisStatus(previousElems, data, hasCrossroads);
             changesAre = changesAre || changesAreThis;
@@ -121,7 +121,8 @@ namespace DisposePlugin.Services
         {
             var result = new HashSet<int>();
             foreach (var data in previousElems)
-                result.AddRange(data.Crossroads);
+                if (data != null && data.IsVisited())
+                    result.AddRange(data.Crossroads);
             return result;
         }
 
@@ -147,7 +148,8 @@ namespace DisposePlugin.Services
                     data[resultStatus.Key] = resultStatus.Value;
                 }
             }
-            changesAre = changesAre || invokedExpressions.Keys.Except(data.InvokedExpressions.Keys).Any(); // или вычисляется лениво
+            changesAre = changesAre || invokedExpressions.Keys.Except(data.InvokedExpressions.Keys).Any();
+                // или вычисляется лениво
             data.InvokedExpressions = invokedExpressions;
         }
 
@@ -201,7 +203,8 @@ namespace DisposePlugin.Services
         }
 
         // Вычисляет статус на основе предыдущего объединенного статуса и текущего статуса.
-        private VariableDisposeStatus CombinePreviousAndCurrent(VariableDisposeStatus previousStatus, VariableDisposeStatus status)
+        private VariableDisposeStatus CombinePreviousAndCurrent(VariableDisposeStatus previousStatus,
+            VariableDisposeStatus status)
         {
             switch (status)
             {
@@ -248,12 +251,20 @@ namespace DisposePlugin.Services
         // (Для группы равноправных элементов, например, всех предыдущих элементов)
         private VariableDisposeStatus UniteStatus(JetHashSet<VariableDisposeStatus> statusSet, bool hasCrossroads)
         {
-            var disposedAndInvocationSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.DependsOnInvocation };
+            var disposedAndInvocationSet = new List<VariableDisposeStatus>
+            {
+                VariableDisposeStatus.Disposed,
+                VariableDisposeStatus.DependsOnInvocation
+            };
             if (statusSet.IsSupersetOf(disposedAndInvocationSet))
                 return VariableDisposeStatus.Disposed;
             if (statusSet.Contains(VariableDisposeStatus.DependsOnInvocation))
                 return VariableDisposeStatus.DependsOnInvocation;
-            var bothSet = new List<VariableDisposeStatus> { VariableDisposeStatus.Disposed, VariableDisposeStatus.NotDisposed };
+            var bothSet = new List<VariableDisposeStatus>
+            {
+                VariableDisposeStatus.Disposed,
+                VariableDisposeStatus.NotDisposed
+            };
             if (statusSet.Contains(VariableDisposeStatus.Both) || statusSet.IsSupersetOf(bothSet))
                 return VariableDisposeStatus.Both;
             if (!hasCrossroads)
@@ -280,8 +291,8 @@ namespace DisposePlugin.Services
         // Удаляет список вызванных методов для переменных, лешившихся этого статуса.
         private OneToSetMap<IVariableDeclaration, InvokedExpressionData> GetInvokedExpressions
             (ICollection<ControlFlowElementData> previousElems,
-            IDictionary<IVariableDeclaration, VariableDisposeStatus> statusDictionary,
-            OneToSetMap<IVariableDeclaration, InvokedExpressionData> invokedExpressions)
+                IDictionary<IVariableDeclaration, VariableDisposeStatus> statusDictionary,
+                OneToSetMap<IVariableDeclaration, InvokedExpressionData> invokedExpressions)
         {
             var result = new OneToSetMap<IVariableDeclaration, InvokedExpressionData>(invokedExpressions);
             foreach (var status in statusDictionary)
@@ -333,7 +344,8 @@ namespace DisposePlugin.Services
             return changesAre;
         }
 
-        private JetHashSet<VariableDisposeStatus> GetPreviousElemsThisStatusSet(IEnumerable<ControlFlowElementData> previousElems)
+        private JetHashSet<VariableDisposeStatus> GetPreviousElemsThisStatusSet(
+            IEnumerable<ControlFlowElementData> previousElems)
         {
             return previousElems.Select(previousElementData => previousElementData == null || !previousElementData.IsVisited()
                 ? VariableDisposeStatus.Unknown

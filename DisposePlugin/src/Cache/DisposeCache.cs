@@ -19,11 +19,11 @@ namespace DisposePlugin.Cache
     {
         private const int VERSION = 1;
         private readonly JetHashSet<IPsiSourceFile> _dirtyFiles = new JetHashSet<IPsiSourceFile>();
-        private readonly OneToListMap<IPsiSourceFile, DisposeMethodStatus> _sourceFileToDisposeStatus
-            = new OneToListMap<IPsiSourceFile, DisposeMethodStatus>();
+        private readonly IPersistentIndexManager _persistentIdIndex;
         private readonly IPsiConfiguration _psiConfiguration;
         private readonly IShellLocks _shellLocks;
-        private readonly IPersistentIndexManager _persistentIdIndex;
+        private readonly OneToListMap<IPsiSourceFile, DisposeMethodStatus> _sourceFileToDisposeStatus
+            = new OneToListMap<IPsiSourceFile, DisposeMethodStatus>();
         private DisposePersistentCache<DisposeCacheData> _persistentCache;
 
         public DisposeCache(Lifetime lifetime, IShellLocks shellLocks,
@@ -53,7 +53,8 @@ namespace DisposePlugin.Cache
 
             using (ReadLockCookie.Create())
             {
-                _persistentCache = new DisposePersistentCache<DisposeCacheData>(_shellLocks, VERSION, "DisposeCache", _psiConfiguration);
+                _persistentCache = new DisposePersistentCache<DisposeCacheData>(_shellLocks, VERSION, "DisposeCache",
+                    _psiConfiguration);
             }
 
             var data = new Dictionary<IPsiSourceFile, DisposeCacheData>();
@@ -80,12 +81,12 @@ namespace DisposePlugin.Cache
 
         public void MergeLoaded(object data)
         {
-            var parts = (Dictionary<IPsiSourceFile, DisposeCacheData>)data;
+            var parts = (Dictionary<IPsiSourceFile, DisposeCacheData>) data;
             foreach (var pair in parts)
             {
                 if (pair.Key.IsValid() && !_dirtyFiles.Contains(pair.Key))
                 {
-                    ((ICache)this).Merge(pair.Key, pair.Value);
+                    ((ICache) this).Merge(pair.Key, pair.Value);
                 }
             }
         }
@@ -97,7 +98,7 @@ namespace DisposePlugin.Cache
 
             Assertion.Assert(_persistentCache != null, "_persistentCache != null");
             _persistentCache.Save(progress, _persistentIdIndex, (writer, file, data) =>
-            DisposeCacheSerializer.Write(data, writer));
+                DisposeCacheSerializer.Write(data, writer));
             _persistentCache.Dispose();
             _persistentCache = null;
         }
@@ -162,7 +163,7 @@ namespace DisposePlugin.Cache
 
             if (_dirtyFiles.Count > 0)
             {
-                foreach (IPsiSourceFile projectFile in new List<IPsiSourceFile>(_dirtyFiles))
+                foreach (var projectFile in new List<IPsiSourceFile>(_dirtyFiles))
                 {
                     using (WriteLockCookie.Create())
                     {
@@ -204,7 +205,8 @@ namespace DisposePlugin.Cache
 
         private class DisposePersistentCache<T> : SimplePersistentCache<T>
         {
-            public DisposePersistentCache(IShellLocks locks, int formatVersion, string cacheDirectoryName, IPsiConfiguration psiConfiguration)
+            public DisposePersistentCache(IShellLocks locks, int formatVersion, string cacheDirectoryName,
+                IPsiConfiguration psiConfiguration)
                 : base(locks, formatVersion, cacheDirectoryName, psiConfiguration)
             {
             }

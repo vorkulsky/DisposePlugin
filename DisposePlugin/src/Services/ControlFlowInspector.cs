@@ -10,10 +10,8 @@ namespace DisposePlugin.Services
     {
         #region Data
 
-        [NotNull]
-        protected readonly CSharpControlFlowGraf Graf;
-        [NotNull]
-        protected readonly ICSharpFunctionDeclaration FunctionDeclaration;
+        [NotNull] protected readonly CSharpControlFlowGraf Graf;
+        [NotNull] protected readonly ICSharpFunctionDeclaration FunctionDeclaration;
 
         #endregion
 
@@ -24,7 +22,8 @@ namespace DisposePlugin.Services
             Graf = graf;
         }
 
-        protected void DoStep([CanBeNull] IControlFlowElement previous, [NotNull] IControlFlowElement current, bool visitNew,
+        protected void DoStep([CanBeNull] IControlFlowElement previous, [NotNull] IControlFlowElement current,
+            bool visitNew,
             ITreeNodeHandlerFactory nodeHandlerFactory, ControlFlowElementDataStorage elementDataStorage)
         {
             if (!current.IsReachable)
