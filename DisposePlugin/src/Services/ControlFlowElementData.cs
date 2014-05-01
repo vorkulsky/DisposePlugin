@@ -44,15 +44,16 @@ namespace DisposePlugin.Services
             set
             {
                 if (value != null)
-                    _status[index] = value.GetValueOrDefault();
+                    _status[index] = value.Value;
             }
             get
             {
                 if (index == null)
                     return null;
                 VariableDisposeStatus data;
-                _status.TryGetValue(index, out data);
-                return data;
+                if (_status.TryGetValue(index, out data))
+                    return data;
+                return null;
             }
         }
 
