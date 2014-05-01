@@ -156,5 +156,43 @@ namespace DisposePlugin.Util
             }
             return false;
         }
+
+        public static void ProcessUsingStatement([NotNull] IUsingStatement usingStatement, ControlFlowElementData data)
+        {
+            var expressions = usingStatement.Expressions;
+            foreach (var expression in expressions)
+            {
+                var referenceExpression = expression as IReferenceExpression;
+                if (referenceExpression != null)
+                {
+                    ProcessReferenceExpressionInUsingStatement(referenceExpression, data);
+                    continue;
+                }
+                var thisExpression = expression as IThisExpression;
+                if (thisExpression != null)
+                {
+                    ProcessThisExpressionInUsingStatement(data);
+                }
+            }
+        }
+
+        public static void ProcessReferenceExpressionInUsingStatement([NotNull] IReferenceExpression referenceExpression,
+            ControlFlowElementData data)
+        {
+            var declaration = GetVariableDeclarationForReferenceExpression(referenceExpression);
+            if (declaration == null)
+                return;
+            var variableData = data[declaration];
+            if (variableData == null)
+                return;
+            data[declaration] = VariableDisposeStatus.Disposed;
+        }
+
+        public static void ProcessThisExpressionInUsingStatement(ControlFlowElementData data)
+        {
+            if (data.ThisStatus == null)
+                return;
+            data.ThisStatus = VariableDisposeStatus.Disposed;
+        }
     }
 }

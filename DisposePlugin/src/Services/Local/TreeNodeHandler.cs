@@ -34,6 +34,10 @@ namespace DisposePlugin.Services.Local
             {
                 ProcessInvocationExpression(treeNode as IInvocationExpression, data);
             }
+            else if (treeNode is IUsingStatement)
+            {
+                TreeNodeHandlerUtil.ProcessUsingStatement(treeNode as IUsingStatement, data);
+            }
         }
 
         private void ProcessLocalVariableDeclaration([NotNull] ILocalVariableDeclaration variableDeclaration,

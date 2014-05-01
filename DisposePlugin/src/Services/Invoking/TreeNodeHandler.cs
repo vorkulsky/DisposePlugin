@@ -24,6 +24,10 @@ namespace DisposePlugin.Services.Invoking
             {
                 ProcessInvocationExpression(treeNode as IInvocationExpression, data);
             }
+            else if (treeNode is IUsingStatement)
+            {
+                TreeNodeHandlerUtil.ProcessUsingStatement(treeNode as IUsingStatement, data);
+            }
         }
 
         private void ProcessInvocationExpression([NotNull] IInvocationExpression invocationExpression,
