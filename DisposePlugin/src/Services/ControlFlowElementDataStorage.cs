@@ -331,32 +331,48 @@ namespace DisposePlugin.Services
             [NotNull] ControlFlowElementData data, bool hasCrossroads)
         {
             var statusSet = GetPreviousElemsThisStatusSet(previousElems);
+            if (statusSet == null)
+                return false;
             var resultStatus = UniteStatus(statusSet, hasCrossroads);
-            var combinedDtatus = data.ThisStatus != null
+            var combinedStatus = data.ThisStatus != null
                 ? CombinePreviousAndCurrent(resultStatus, data.ThisStatus.Value)
                 : resultStatus;
-            var changesAre = GetInvokedExpressionsForThis(previousElems, data, combinedDtatus);
-            if (combinedDtatus != data.ThisStatus)
+            var changesAre = UpdateInvokedExpressionsForThis(previousElems, data, combinedStatus);
+            if (combinedStatus != data.ThisStatus)
             {
-                data.ThisStatus = combinedDtatus;
+                data.ThisStatus = combinedStatus;
                 changesAre = true;
             }
             return changesAre;
         }
 
+        // Возвращает множество статусов предыдущих переменной this для предыдущих элементов.
+        // Если предыдущий элемент не был посещен или не содержит данных, в множество добавляется VariableDisposeStatus.Unknown.
+        // Если хотя бы один предыдущий элемент был посещен и содержит данные, но не содержит статуса для this, возвращается null.
+        [CanBeNull]
         private JetHashSet<VariableDisposeStatus> GetPreviousElemsThisStatusSet(
             IEnumerable<ControlFlowElementData> previousElems)
         {
-            return previousElems.Select(previousElementData => previousElementData == null || !previousElementData.IsVisited()
-                ? VariableDisposeStatus.Unknown
-                : previousElementData.ThisStatus ?? VariableDisposeStatus.Unknown).ToHashSet();
+            var result = new JetHashSet<VariableDisposeStatus>();
+            foreach (var previousElementData in previousElems)
+            {
+                if (previousElementData == null || !previousElementData.IsVisited())
+                    result.Add(VariableDisposeStatus.Unknown);
+                else
+                {
+                    if (previousElementData.ThisStatus == null)
+                        return null;
+                    result.Add(previousElementData.ThisStatus.Value);
+                }
+            }
+            return result;
         }
 
         // Обновляет список вызванных методов для this, если это имеет статус DependsOnInvocation.
         // Иначе удаляет список вызванных методов.
         // Cразу применяет все действия.
         // Возвращает были ли изменения.
-        private bool GetInvokedExpressionsForThis(ICollection<ControlFlowElementData> previousElems,
+        private bool UpdateInvokedExpressionsForThis(ICollection<ControlFlowElementData> previousElems,
             ControlFlowElementData data, VariableDisposeStatus resultStatus)
         {
             if (resultStatus != VariableDisposeStatus.DependsOnInvocation)
