@@ -13,7 +13,7 @@ namespace DisposePlugin.Services.Invoking
 {
     public class ControlFlowInspector : Services.ControlFlowInspector
     {
-        private readonly Dictionary<IRegularParameterDeclaration, byte> _disposableArguments;
+        [CanBeNull] private readonly Dictionary<IRegularParameterDeclaration, byte> _disposableArguments;
         private readonly bool _processThis;
         [NotNull] private readonly ITypeElement _disposableInterface;
         private readonly ControlFlowElementDataStorage _elementDataStorage;
@@ -25,13 +25,19 @@ namespace DisposePlugin.Services.Invoking
         {
             _disposableInterface = disposableInterface;
             _disposableArguments = GetDisposableArguments();
-            _processThis = IsThisDisposable();
-            _elementDataStorage = InitElementDataStorage();
-            _psiSourceFile = functionDeclaration.GetSourceFile();
+            if (_disposableArguments != null)
+            {
+                _processThis = IsThisDisposable();
+                _elementDataStorage = InitElementDataStorage();
+                _psiSourceFile = functionDeclaration.GetSourceFile();
+            }
         }
 
+        [CanBeNull]
         public IList<MethodArgumentStatus> GetMethodArgumentStatuses()
         {
+            if (_disposableArguments == null)
+                return null;
             if (_disposableArguments.Count == 0 && !_processThis)
                 return new List<MethodArgumentStatus>();
             var nodeHandlerFactory = new TreeNodeHandlerFactory(_disposableInterface);
@@ -42,6 +48,7 @@ namespace DisposePlugin.Services.Invoking
             return argumentStatuses;
         }
 
+        [CanBeNull]
         private IList<MethodArgumentStatus> CalculateArgumentStatuses()
         {
             var argumentStatuses = new List<MethodArgumentStatus>();
@@ -54,6 +61,8 @@ namespace DisposePlugin.Services.Invoking
             });
             var generalStatuses = new Dictionary<IVariableDeclaration, VariableDisposeStatus>();
             allStatuses.ForEach(kvp => generalStatuses[kvp.Key] = GetGeneralStatus(kvp.Value));
+            if (_disposableArguments == null)
+                return null;
             _disposableArguments.ForEach(
                 kvp => argumentStatuses.Add(new MethodArgumentStatus(kvp.Value, generalStatuses[kvp.Key],
                     allInvokedExpressions[kvp.Key].OrderBy(im => im.Offset).ToList(), _psiSourceFile)));
@@ -99,7 +108,8 @@ namespace DisposePlugin.Services.Invoking
         {
             var elementDataStorage = new ControlFlowElementDataStorage();
             var initialData = new ControlFlowElementData(Graf.EntryElement.Id);
-            _disposableArguments.ForEach(kvp => initialData[kvp.Key] = VariableDisposeStatus.NotDisposed);
+            if (_disposableArguments != null)
+                _disposableArguments.ForEach(kvp => initialData[kvp.Key] = VariableDisposeStatus.NotDisposed);
             if (_processThis)
                 initialData.ThisStatus = VariableDisposeStatus.NotDisposed;
             elementDataStorage[Graf.EntryElement] = initialData;
@@ -109,11 +119,17 @@ namespace DisposePlugin.Services.Invoking
         private bool IsThisDisposable()
         {
             var typeDeclaration = FunctionDeclaration.GetContainingTypeDeclaration();
+            if (typeDeclaration == null)
+                return false;
             return DisposeUtil.HasDisposable(typeDeclaration, _disposableInterface);
         }
 
+        [CanBeNull]
         private Dictionary<IRegularParameterDeclaration, byte> GetDisposableArguments()
         {
+            var functionDeclaredElement = FunctionDeclaration.DeclaredElement;
+            if (functionDeclaredElement == null)
+                return null;
             var allArguments = FunctionDeclaration.DeclaredElement.Parameters;
             var disposableArguments = new Dictionary<IRegularParameterDeclaration, byte>();
 

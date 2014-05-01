@@ -16,7 +16,7 @@ namespace DisposePlugin.Cache
         private readonly IPsiSourceFile _psiSourceFile;
         private readonly string _name;
         private readonly int _offset;
-        private readonly IList<MethodArgumentStatus> _methodArguments;
+        [CanBeNull] private readonly IList<MethodArgumentStatus> _methodArguments;
 
         public DisposeMethodStatus(string name, int offset, IList<MethodArgumentStatus> methodArguments,
             IPsiSourceFile psiSourceFile)
@@ -44,6 +44,7 @@ namespace DisposePlugin.Cache
             get { return _offset; }
         }
 
+        [CanBeNull]
         public IList<MethodArgumentStatus> MethodArguments
         {
             get { return _methodArguments; }
@@ -55,9 +56,13 @@ namespace DisposePlugin.Cache
         {
             writer.Write(Name);
             writer.Write(Offset);
-            writer.Write(MethodArguments.Count);
-            foreach (var argument in MethodArguments)
-                argument.Write(writer);
+            if (MethodArguments != null)
+            {
+                writer.Write(MethodArguments.Count);
+                foreach (var argument in MethodArguments)
+                    argument.Write(writer);
+            }
+            else writer.Write(0);
         }
 
         public static DisposeMethodStatus Read(BinaryReader reader, IPsiSourceFile psiSourceFile)

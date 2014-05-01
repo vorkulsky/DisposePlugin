@@ -9,6 +9,7 @@ using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.Util;
+using JetBrains.Util.Special;
 
 namespace DisposePlugin.Services.Local
 {
@@ -213,7 +214,8 @@ namespace DisposePlugin.Services.Local
 
         private static MethodArgumentStatus GetArgumentStatusByNumber(DisposeMethodStatus methodStatus, int number)
         {
-            return methodStatus.MethodArguments.Where(a => a.Number == number).Select(a => a).FirstOrDefault();
+            return methodStatus.MethodArguments.IfNull(() => new List<MethodArgumentStatus>())
+                .Where(a => a.Number == number).Select(a => a).FirstOrDefault();
         }
 
         [CanBeNull]
