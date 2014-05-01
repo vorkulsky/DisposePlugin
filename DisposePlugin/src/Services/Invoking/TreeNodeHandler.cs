@@ -62,7 +62,10 @@ namespace DisposePlugin.Services.Invoking
             var referenceExpression = invocationExpression.InvokedExpression as IReferenceExpression;
             if (referenceExpression == null)
                 return;
-            var name = referenceExpression.NameIdentifier.Name;
+            var nameIdentifier = referenceExpression.NameIdentifier;
+            if (nameIdentifier == null)
+                return;
+            var name = nameIdentifier.Name;
             var offset = InvokedExpressionData.GetOffsetByNode(invocationExpression);
             var sourceFile = invocationExpression.GetSourceFile();
 

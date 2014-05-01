@@ -73,6 +73,20 @@ namespace DisposePlugin.Util
             return declaration;
         }
 
+        public static bool IsCloseInvocation([NotNull] IInvocationExpression invocationExpression)
+        {
+            var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
+            if (invokedExpression == null)
+                return false;
+            var nameIdentifier = invokedExpression.NameIdentifier;
+            if (nameIdentifier == null)
+                return false;
+            var name = nameIdentifier.Name;
+            if (!name.Equals("Close"))
+                return false;
+            return true;
+        }
+
         public static bool IsSimpleDisposeInvocation([NotNull] IInvocationExpression invocationExpression)
         {
             if (invocationExpression.Arguments.Count != 0)
@@ -80,7 +94,10 @@ namespace DisposePlugin.Util
             var invokedExpression = invocationExpression.InvokedExpression as IReferenceExpression;
             if (invokedExpression == null)
                 return false;
-            var name = invokedExpression.NameIdentifier.Name;
+            var nameIdentifier = invokedExpression.NameIdentifier;
+            if (nameIdentifier == null)
+                return false;
+            var name = nameIdentifier.Name;
             if (!name.Equals("Dispose"))
                 return false;
             return true;
@@ -122,7 +139,7 @@ namespace DisposePlugin.Util
         {
             if (isInvocationOnDisposableThis)
             {
-                if (IsSimpleDisposeInvocation(invocationExpression))
+                if (IsSimpleDisposeInvocation(invocationExpression) || IsCloseInvocation(invocationExpression))
                 {
                     data.ThisStatus = VariableDisposeStatus.Disposed;
                     return true;
@@ -130,7 +147,8 @@ namespace DisposePlugin.Util
             }
             else
             {
-                if (qualifierDisposableVariableDeclaration != null && IsSimpleDisposeInvocation(invocationExpression))
+                if (qualifierDisposableVariableDeclaration != null &&
+                    (IsSimpleDisposeInvocation(invocationExpression) || IsCloseInvocation(invocationExpression)))
                 {
                     data[qualifierDisposableVariableDeclaration] = VariableDisposeStatus.Disposed;
                     return true;
