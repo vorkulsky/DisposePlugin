@@ -58,7 +58,8 @@ namespace DisposePlugin.Services
             }
             var currentData = this[currentElement];
             var changesAre = false;
-            var previousElems = currentElement.Entries.Select(enterRib => this[enterRib.Source]).ToArray();
+            var previousElems = currentElement.Entries.Where(enterRib => enterRib.Source != null && enterRib.Source.IsReachable)
+                .Select(enterRib => this[enterRib.Source]).ToArray();
             var newTargetData = Update(currentData ?? new ControlFlowElementData(currentElement.Id), previousElems,
                 ref changesAre);
             this[currentElement] = newTargetData;
