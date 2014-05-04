@@ -23,16 +23,11 @@ namespace DisposePlugin.Services
         public OneToSetMap<IVariableDeclaration, InvokedExpressionData> InvokedExpressions =
             new OneToSetMap<IVariableDeclaration, InvokedExpressionData>();
 
-        public OneToSetMap<IVariableDeclaration, IVariableDeclaration> Synonyms =
-            new OneToSetMap<IVariableDeclaration, IVariableDeclaration>();
-
         public VariableDisposeStatus? ThisStatus;
         public HashSet<InvokedExpressionData> ThisInvokedExpressions = new HashSet<InvokedExpressionData>();
-
         // Содержит id вершин графа потока управления, в которые ведет несколько путей, не все из которых пройдены.
         public HashSet<int> Crossroads = new HashSet<int>();
         private bool _visited = false;
-        // id текущей вершины
         private readonly int _id;
 
         public Dictionary<IVariableDeclaration, VariableDisposeStatus> Status
