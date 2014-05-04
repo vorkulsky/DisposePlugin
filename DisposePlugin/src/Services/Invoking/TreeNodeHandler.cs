@@ -28,6 +28,10 @@ namespace DisposePlugin.Services.Invoking
             {
                 TreeNodeHandlerUtil.ProcessUsingStatement(treeNode as IUsingStatement, data);
             }
+            else if (treeNode is IAssignmentExpression)
+            {
+                TreeNodeHandlerUtil.ProcessAssignmentExpression(treeNode as IAssignmentExpression, data);
+            }
         }
 
         private void ProcessInvocationExpression([NotNull] IInvocationExpression invocationExpression,

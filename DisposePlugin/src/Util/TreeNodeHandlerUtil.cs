@@ -194,5 +194,79 @@ namespace DisposePlugin.Util
                 return;
             data.ThisStatus = VariableDisposeStatus.Disposed;
         }
+
+        // Работает только с простейшими присваиваниями.
+        public static void ProcessAssignmentExpression([NotNull] IAssignmentExpression assignmentExpression,
+            ControlFlowElementData data)
+        {
+            var destReferenceExpression = assignmentExpression.Dest as IReferenceExpression;
+            var sourceReferenceExpression = assignmentExpression.Source as IReferenceExpression;
+            var sourceThisExpression = assignmentExpression.Source as IThisExpression;
+            if (destReferenceExpression == null || (sourceReferenceExpression == null && sourceThisExpression == null))
+                return;
+            if (sourceThisExpression != null)
+            {
+                // Не учитываем операцию присваивания this.
+                //ProcessThisAssignmentExpression(destReferenceExpression, data);
+                return;
+            }
+            var destDeclaration = GetVariableDeclarationForReferenceExpression(destReferenceExpression);
+            var sourceDeclaration = GetVariableDeclarationForReferenceExpression(sourceReferenceExpression);
+            if (destDeclaration == null || sourceDeclaration == null)
+                return;
+            var destIsFieldDeclaration = destDeclaration is IFieldDeclaration;
+            var destIsParameterDeclaration = destDeclaration is IParameterDeclaration;
+            var destIsLocalVariableDeclaration = destDeclaration is ILocalVariableDeclaration;
+            // В том числе отсекает случай sourceIsFieldDeclaration и случай sourceIsParameterDeclaration,
+            // когда за переметрами не следим.
+            var sourceStatus = data[sourceDeclaration];
+            if (sourceStatus == null || destIsParameterDeclaration)
+                return;
+            if (destIsFieldDeclaration)
+            {
+                data[sourceDeclaration] = VariableDisposeStatus.Disposed;
+                return;
+            }
+            // Не учитываем присваивания в аргументы функции
+            if (!destIsLocalVariableDeclaration)
+                return;
+            // Ничего не меняет присвоение своему себе или синониму
+            if (destDeclaration == sourceDeclaration ||
+                (data.Synonyms.ContainsKey(destDeclaration) && data.Synonyms[destDeclaration].Contains(sourceDeclaration)))
+                return;
+            // В режиме Invoking значение имеет только статус аргументов функции, что при этом будет содержаться в данных
+            // о локальных переменных не существенно
+            // Не сообщаем о необходимости задиспозить переменную при присваивании в нее.
+            // Удаляем dest из ее синонимов.
+            if (data.Synonyms.ContainsKey(destDeclaration))
+                foreach (var synonym in data.Synonyms[destDeclaration])
+                    data.Synonyms[synonym].Remove(synonym);
+            // Перезаписать информацию о dest информацией о source, и установить их синонимами друг другу
+            data[destDeclaration] = data[sourceDeclaration];
+            if (data.InvokedExpressions.ContainsKey(destDeclaration))
+                data.InvokedExpressions.RemoveKey(destDeclaration);
+            if (data.InvokedExpressions.ContainsKey(sourceDeclaration))
+                data.InvokedExpressions.AddRange(sourceDeclaration, data.InvokedExpressions[sourceDeclaration]);
+            if (data.Synonyms.ContainsKey(destDeclaration))
+                data.Synonyms.RemoveKey(destDeclaration);
+            if (data.Synonyms.ContainsKey(sourceDeclaration))
+                data.Synonyms.AddRange(sourceDeclaration, data.Synonyms[sourceDeclaration]);
+            data.Synonyms.Add(destDeclaration, sourceDeclaration);
+            data.Synonyms.Add(sourceDeclaration, destDeclaration);
+        }
+
+        /*public static void ProcessThisAssignmentExpression([NotNull] IReferenceExpression destReferenceExpression,
+            ControlFlowElementData data)
+        {
+            if (data.ThisStatus == null)
+                return;
+            var destDeclaration = GetVariableDeclarationForReferenceExpression(destReferenceExpression);
+            if (destDeclaration == null)
+                return;
+            var destIsFieldDeclaration = destDeclaration is IFieldDeclaration;
+            if (destIsFieldDeclaration)
+                data.ThisStatus = VariableDisposeStatus.Disposed;
+            //TODO
+        }*/
     }
 }
