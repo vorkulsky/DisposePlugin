@@ -10,8 +10,8 @@ namespace DisposePlugin.CodeInspections.Highlighting
         public NotDisposableContainsDisposableField(bool implementsDisposableInterface)
         {
             Message = implementsDisposableInterface
-                ? "Class contains disposable fiels, but not implements dispose method itself"
-                : "Class contains disposable fiels, but is not disposable itself";
+                ? "Class contains disposable fields, but not implements dispose method itself"
+                : "Class contains disposable fields, but is not disposable itself";
         }
 
         public string ToolTip

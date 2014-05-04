@@ -57,8 +57,7 @@ namespace DisposePlugin.Services.Local
             variables.ForEach(
                 variableDeclaration =>
                     _highlightings.Add(new HighlightingInfo(variableDeclaration.GetNameDocumentRange(),
-                        new LocalVariableNotDisposed(
-                            "Variable " + variableDeclaration.DeclaredName + "probably is not disposed"))));
+                        new LocalVariableNotDisposed(variableDeclaration.DeclaredName))));
         }
     }
 }
