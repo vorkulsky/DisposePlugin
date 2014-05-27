@@ -201,7 +201,7 @@ namespace DisposePlugin.Cache
             return data.FirstOrDefault(status => status.Offset == offset);
         }
 
-        #region Nested type: LexPersistentCache
+        #region Nested type: DisposePersistentCache
 
         private class DisposePersistentCache<T> : SimplePersistentCache<T>
         {

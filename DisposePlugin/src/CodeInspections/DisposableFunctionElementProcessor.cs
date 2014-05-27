@@ -48,12 +48,6 @@ namespace DisposePlugin.CodeInspections
             if (graf == null)
                 return;
 
-            /*            var flowGrafInspector = new CSharpControlFlowGrafInspector(graf, ValueAnalysisMode.OPTIMISTIC);
-                        flowGrafInspector.Inspect();
-                        var au = flowGrafInspector.AssignmentsUsage;*/
-            //FindInfoByExpression
-            //FindVariableInfo
-
             var grafInspector = new ControlFlowInspector(functionDeclaration, graf, _maxLevel, disposableInterface);
             var highlightings = grafInspector.Inspect();
             _highlightings.AddRange(highlightings);

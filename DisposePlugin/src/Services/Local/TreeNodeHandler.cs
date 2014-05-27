@@ -132,9 +132,6 @@ namespace DisposePlugin.Services.Local
             if (qualifierDisposableVariableDeclaration != null)
             {
                 var argumentStatus = GetArgumentStatusByNumber(methodStatus, 0);
-                /*TODO: нужно ли перестраивать кэш, если аргумента с нужным номером нет, и что тогда делать?
-                Может быть, вести спиок файлов, для которых принудительно перестроен кэш. И перестраивать кэш для файла не более
-                одного раза в том случае, если в кэше отсутствует что-то.*/
                 if (argumentStatus != null)
                 {
                     switch (argumentStatus.Status)

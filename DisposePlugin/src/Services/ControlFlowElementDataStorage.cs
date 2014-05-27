@@ -248,7 +248,7 @@ namespace DisposePlugin.Services
             return result;
         }
 
-        //На основе множества статусов вычисляет один.
+        // На основе множества статусов вычисляет один.
         // (Для группы равноправных элементов, например, всех предыдущих элементов)
         private VariableDisposeStatus UniteStatus(JetHashSet<VariableDisposeStatus> statusSet, bool hasCrossroads)
         {
@@ -289,7 +289,7 @@ namespace DisposePlugin.Services
         #region invokedExpressions
 
         // Обновляет список вызванных методов для переменных со статусом DependsOnInvocation.
-        // Удаляет список вызванных методов для переменных, лешившихся этого статуса.
+        // Удаляет список вызванных методов для переменных, лишившихся этого статуса.
         private OneToSetMap<IVariableDeclaration, InvokedExpressionData> GetInvokedExpressions
             (ICollection<ControlFlowElementData> previousElems,
                 IDictionary<IVariableDeclaration, VariableDisposeStatus> statusDictionary,
