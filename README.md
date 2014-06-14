@@ -1,13 +1,13 @@
-DisposePlugin
-=============
+### DisposePlugin
 
-Checks deterministic finalization.
+Checks whether all disposable objects are cleaned up along all code paths. Recommends the developer to implement IDisposable or override the Dispose method if necessary.
 
-### Installation
+##### Usage
 
 To launch the Visual Studio with a plug-in:
+    
     devenv.exe /ReSharper.Plugin DisposePlugin.dll
 
-### Dependencies
+##### Dependencies
 
 ReSharper 8.2
